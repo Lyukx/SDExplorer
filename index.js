@@ -1,1 +1,1 @@
-export {default as DisplayElements} from "./src/element";
+export {default as DisplayElements} from "./src/elementController";

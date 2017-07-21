@@ -72,8 +72,15 @@ var objects = [{id: 0, name: "bfs", type: "BFS", invisible: false},
                 {id: 4, name: "adjList", type: "List", invisible: false},
                 {id: 5, name: "adj", type: "Node", invisible: false}];
 
-var groups = [{id: 6, objs: [1, 2], name:"group1"},
-                {id: 7, objs: [4, 5], name:"group2"}];
+//var groups = [{id: 6, objs: [1, 2], name:"group1"},
+//                {id: 7, objs: [4, 6], name:"group2"}];
+var groups = [{id: 6, objs: [0], name:"group1"},
+            {id: 7, objs: [1], name:"group2"},
+            {id: 8, objs: [6, 7], name:"group3"},
+            {id: 9, objs: [8, 2], name:"group4"},
+            {id: 10, objs: [3, 9], name:"group5"},
+            {id: 11, objs: [10, 4], name:"group6"},
+            {id: 12, objs: [5, 11], name:"group7"},];
 
 var elements = new sd.DisplayElements(objects, groups);
 console.log(elements);

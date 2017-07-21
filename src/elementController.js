@@ -1,32 +1,5 @@
-(function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-	typeof define === 'function' && define.amd ? define(['exports'], factory) :
-	(factory((global.sd = {})));
-}(this, (function (exports) { 'use strict';
-
-var ELEMENT_HEIGHT$1 = 40;
-var ELEMENT_CH_WIDTH$1 = 10;
-var PADDING$1 = 20;
-
-function Element(rawElement) {
-    this.id = rawElement.id;
-    this.name = rawElement.name;
-    this.parent = -1;
-    this.children = [];
-    this.x = 0;
-    this.y = 0;
-    this.height = ELEMENT_HEIGHT$1;
-    this.width = this.name.length * ELEMENT_CH_WIDTH$1 + PADDING$1 * 2;
-    this.fold = true;
-}
-
-Element.prototype.isGroup = function () {
-    if(this.children.length == 0)
-        return false;
-    else
-        return true;
-};
-
+import {Element} from "./element";
+var ELEMENT_HEIGHT = 40;
 var ELEMENT_CH_WIDTH = 10;
 var ELEMENT_CH_HEIGHT = 4;
 var PADDING = 20;
@@ -60,8 +33,8 @@ function initElement(objects, groups) {
     return total;
 }
 
-function DisplayElements(objects, groups){
-    total = initElement(objects, groups);
+export default function DisplayElements(objects, groups){
+    total = initElement(objects, groups);;
     //var display = [];
     total.forEach(function(element, key, map){
         if(element.parent == -1)
@@ -102,7 +75,7 @@ function drawElement(element) {
     // Draw rectangles
     var rect = tempG.append("rect")
                 .attr({x: 0, y: 0, width: element.width, height: element.height})
-                .style("stroke", "black");
+                .style("stroke", "black")
     if(element.isGroup())
         rect.style("fill", "yellow");
     else
@@ -131,10 +104,6 @@ function drawElement(element) {
             // fold the group
             else{
                 // If there are unfold groups in the group, fold them
-                //if(allFolded(thisGroup)){
-                //    fold(thisGroup);
-                //}
-
                 var stack = [];
                 stack.push(thisGroup);
                 while(stack.length != 0){
@@ -214,7 +183,7 @@ function unfoldUpdateStatus(groupId) {
         tempGroup.height += (2 * PADDING_GROUP);
         tempGroup.y -= PADDING_GROUP;
     }
-}
+};
 
 function foldUpdateStatus(groupId) {
     var thisGroup = total.get(groupId);
@@ -315,9 +284,3 @@ function foldUpdateSVG(thisGroup) {
             }
         });
 }
-
-exports.DisplayElements = DisplayElements;
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-})));
