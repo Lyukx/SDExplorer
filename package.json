@@ -1,0 +1,13 @@
+{
+  "name": "d3-sequence-diagram",
+  "version": "0.0.1",
+  "scripts": {
+    "prepublish": "rollup -c && uglifyjs ./test/sd.js -c -m -o ./test/sd.min.js",
+    "cleanup": "rm ./test/sd.js && rm ./test/sd.min.js"
+  },
+  "devDependencies": {
+    "rollup": "0.45",
+    "rollup-plugin-node-resolve": "2",
+    "uglify-js": "2"
+  }
+}
