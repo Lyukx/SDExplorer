@@ -155,24 +155,158 @@ ElementController.prototype.foldUpdateStatus = function(groupId){
     }
 };
 
+function Message(rawMessage){
+    this.from = rawMessage.from;
+    this.to = rawMessage.to;
+    this.message = rawMessage.message;
+    this.callee = rawMessage.callee;
+    this.id = -1;
+    this.valid = false;
+    this.scale = 1;
+    this.position = 0;
+}
+
+Message.prototype.equals = function(another){
+    // position doesn't need to be same
+    return (this.from == another.from && this.to == another.to && this.message == another.message && this.callee == another.callee && this.scale == another.scale);
+};
+
+var MSG_HEIGHT$1 = 80;
+function MessageController(messages, mainThreads){
+    this.messages = [];
+    this.origin = [];
+    this.mainThreads = mainThreads;
+    for(var i = 0; i < messages.length; i++){
+        var thisMsg = new Message(messages[i]);
+        thisMsg.id = i;
+        this.messages.push(thisMsg);
+        this.origin.push({from:thisMsg.from, to:thisMsg.to});
+    }
+
+    this.updateStatus();
+}
+
+MessageController.prototype.updateStatus = function(){
+    var activeSet = new Set();
+    var activeStartMsgId;
+    var position = 0;
+    var validMessageNum = 0;
+    for(var i = 0; i < this.messages.length; i++){
+        var thisMsg = this.messages[i];
+
+        if(this.mainThreads.has(thisMsg.from)){
+            activeSet.clear();
+            activeSet.add(thisMsg.to);
+            thisMsg.valid = true;
+            thisMsg.scale = 1;
+            position += MSG_HEIGHT$1;
+            thisMsg.position = position;
+            activeStartMsgId = thisMsg.id;
+            validMessageNum ++;
+        }
+        else if(activeSet.has(thisMsg.from)){
+            activeSet.add(thisMsg.to);
+            thisMsg.valid = true;
+            thisMsg.scale = 1;
+            // Decide the position
+            var lastMsg = this.messages[i - 1];
+            if(thisMsg.from == lastMsg.to){
+                position += MSG_HEIGHT$1 / 2;
+                thisMsg.position = position;
+                position += MSG_HEIGHT$1 / 2;
+            }
+            else{
+                position += MSG_HEIGHT$1;
+                thisMsg.position = position;
+            }
+            // Change the scale of messages from main thread
+            for(var j = activeStartMsgId; j < i; j++){
+                this.messages[j].scale += 1;
+                if(this.messages[j].to == thisMsg.from)
+                    break;
+            }
+            validMessageNum ++;
+        }
+        else{ // not valid message
+            thisMsg.valid = false;
+        }
+    }
+
+    this.validMessageNum = validMessageNum;
+};
+
 var ELEMENT_CH_HEIGHT = 4;
 var PADDING_GROUP = 10;
+
+var MSG_ACTIVE_WIDTH = 10;
+var MSG_HEIGHT = 80;
+var MSG_PADDING = MSG_HEIGHT / 8;
 
 var total = [];
 var display = [];
 var elementController;
+var messages = [];
+var origin = [];
+var mainThread; //TODO add multi-thread
+var messageController;
 
-function SDViewer(objects, groups){
+function SDViewer(objects, groups, msgs){
     var ec = new ElementController(objects, groups);
     elementController = ec;
     total = ec.total;
     display = ec.display;
+
+    // TODO add multi-thread
+    var mainThreadSet = new Set();
+    mainThreadSet.add(0);
+    mainThread = mainThreadSet;
+
+    var mc = new MessageController(msgs, mainThreadSet);
+    messages = mc.messages;
+    origin = mc.origin;
+    messageController = mc;
 }
 
 SDViewer.prototype.drawAll = function() {
+    // Draw base line
+    display.forEach(function(object){
+        if(!(object.isGroup() && !object.fold)){
+            var x = object.x + object.width / 2;
+            var y1 = object.y;
+            var y2 = y1 + (messageController.validMessageNum + 1) * MSG_HEIGHT;
+            d3.select("svg").append("line")
+                .attr("x1", x)
+                .attr("y1", y1)
+                .attr("x2", x)
+                .attr("y2", y2)
+                .style("stroke", "black")
+                .style("stroke-dasharray", "2,2,2");
+        }
+    });
+
     // Draw elements (groups and objects)
     display.forEach(function(element){
         drawElement(element);
+    });
+
+    // Draw main thread's active block
+    var h = messageController.validMessageNum * MSG_HEIGHT;
+    mainThread.forEach(function(id){
+        var mainThreadObj = total.get(id);
+        var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
+        var y = MSG_HEIGHT;
+        d3.select("svg").append("rect")
+                .attr("class", "mainThreadActiveBar")
+                .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h})
+                .attr("transform", "translate(" + x + "," + y + ")")
+                .style("stroke", "black")
+                .style("fill", "#CCC");
+    });
+
+    // Draw messages
+    messages.forEach(function(message){
+        if(message.valid)
+            drawMessage(message);
     });
 };
 
@@ -184,6 +318,60 @@ function unfold(group){
 function fold(group){
     elementController.foldUpdateStatus(group.id);
     foldUpdateSVG(group);
+}
+
+function drawMessage(message) {
+    var from = total.get(message.from);
+    var to = total.get(message.to);
+    // left active bar
+    var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2;
+    var y1 = message.position + MSG_PADDING;
+    var h1 = message.scale * MSG_HEIGHT - 2 * MSG_PADDING;
+
+    // left side of the right active bar
+    var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2;
+    var y2 = y1 + MSG_PADDING;
+    var h2 = h1 - 2 * MSG_PADDING;
+
+    var tempG = d3.select("svg").append("g");
+    // Draw left active bar if needed
+    if(!mainThread.has(message.from)){
+        tempG.append("rect")
+            .attr("class", "leftActiveBlock")
+            .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h1})
+            .attr("transform", "translate(" + x1 + "," + y1 + ")")
+            .style("stroke", "black")
+		    .style("fill", "#CCC");
+    }
+
+    // Draw call line
+    tempG.append("line")
+			.attr("class", "callLine")
+            .style("stroke", "black")
+            .attr("x1", (message.from < message.to) ? x1 + MSG_ACTIVE_WIDTH : x1)
+            .attr("y1", y2)
+            .attr("x2", (message.from < message.to) ? x2 : x2 + MSG_ACTIVE_WIDTH)
+            .attr("y2", y2)
+            .attr("marker-end", "url(#end)");
+
+    // Draw callback line
+    tempG.append("line")
+			.attr("class", "callBackLine")
+            .style("stroke", "black")
+            .style("stroke-dasharray", "5, 5, 5")
+            .attr("x1", (message.from < message.to) ? x2 : x2 + MSG_ACTIVE_WIDTH)
+            .attr("y1", y2 + h2)
+            .attr("x2", (message.from < message.to) ? x1 + MSG_ACTIVE_WIDTH : x1)
+            .attr("y2", y2 + h2)
+            .attr("marker-end", "url(#end)");
+
+    // Draw right active block
+    tempG.append("rect")
+        	.attr("class", "rightActiveBlock")
+        	.attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h2})
+        	.attr("transform", "translate(" + x2 + "," + y2 + ")")
+			.style("stroke", "black")
+			.style("fill", "#CCC");
 }
 
 function allFolded(group) {
@@ -212,8 +400,6 @@ function drawElement(element) {
         .text(function(d){ return element.name; })
         .attr("transform", "translate(" + element.width / 2 + "," + (element.height / 2 + ELEMENT_CH_HEIGHT) + ")")
         .attr("text-anchor", "middle");
-
-    //TODO: Draw base line of the objects
 
     // Move the object to where it should be
     tempG.attr("class", "element-rectangle")
