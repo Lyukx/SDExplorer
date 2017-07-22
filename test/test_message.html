@@ -72,11 +72,11 @@ var objects = [{id: 0, name: "bfs", type: "BFS", invisible: false},
                 {id: 4, name: "adjList", type: "List", invisible: false},
                 {id: 5, name: "adj", type: "Node", invisible: false}];
 
-var groups = [];//[{id: 6, objs: [1, 2], name:"group1"},
-                //{id: 7, objs: [4, 6], name:"group2"}];
+var groups = [{id: 6, objs: [1, 2], name:"group1"},
+                {id: 7, objs: [4, 6], name:"group2"}];
 
 var messages = [{from: 0, to: 1, caller: null, message:"new", isNew: false},
-                {from: 1, to: 0, caller: null, message:"setLevel(0)", isNew: false},
+                {from: 0, to: 1, caller: null, message:"setLevel(0)", isNew: false},
                 {from: 0, to: 1, caller: null, message:"insert(someNode)", isNew: false},
                 {from: 0, to: 1, caller: "node", message: "remove()", isNew: false},
                 {from: 0, to: 3, caller: "level", message: "getLevel()", isNew: false},
