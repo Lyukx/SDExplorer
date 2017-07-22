@@ -1,168 +1,15 @@
-(function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-	typeof define === 'function' && define.amd ? define(['exports'], factory) :
-	(factory((global.sd = {})));
-}(this, (function (exports) { 'use strict';
-
-var ELEMENT_HEIGHT$2 = 40;
-var ELEMENT_CH_WIDTH$2 = 10;
-var PADDING$2 = 20;
-
-function Element(rawElement) {
-    this.id = rawElement.id;
-    this.name = rawElement.name;
-    this.parent = -1;
-    this.children = [];
-    this.x = 0;
-    this.y = 0;
-    this.height = ELEMENT_HEIGHT$2;
-    this.width = this.name.length * ELEMENT_CH_WIDTH$2 + PADDING$2 * 2;
-    this.fold = true;
-}
-
-Element.prototype.isGroup = function () {
-    if(this.children.length == 0)
-        return false;
-    else
-        return true;
-};
-
-var ELEMENT_CH_WIDTH$1 = 10;
-var PADDING$1 = 20;
-var PADDING_GROUP$1 = 10;
-
-var total$1 = [];
-var display$1 = [];
-
-function initElement(objects, groups) {
-    var total = new Map();
-    objects.forEach(function(object) {
-        object.name = object.name + ":" + object.type;
-        var e = new Element(object);
-        total.set(e.id, e);
-    });
-
-    groups.forEach(function(group) {
-        var e = new Element(group);
-        e.children = group.objs;
-        total.set(e.id, e);
-    });
-
-    groups.forEach(function(group) {
-        objects = group.objs;
-        for(var i = 0; i < objects.length; i++) {
-            var thisElement = total.get(objects[i]);
-            thisElement.parent = group.id;
-        }
-    });
-
-    return total;
-}
-
-function ElementController(objects, groups){
-    total$1 = initElement(objects, groups);
-    total$1.forEach(function(element, key, map){
-        if(element.parent == -1)
-            display$1.push(element);
-    });
-
-    display$1.sort(function(a, b){
-        var ida = a.id;
-        var idb = b.id;
-        if(a.isGroup()) ida = a.children[0];
-        if(b.isGroup()) idb = b.children[0];
-        return ida - idb;
-    });
-
-    var dist = PADDING$1;
-    for(var i = 0; i < display$1.length; i++){
-        display$1[i].x = dist;
-        dist += (display$1[i].width + PADDING$1);
-    }
-
-    this.total = total$1;
-    this.display = display$1;
-}
-
-ElementController.prototype.unfoldUpdateStatus = function(groupId){
-//function unfoldUpdateStatus(groupId) {
-    var thisGroup = total$1.get(groupId);
-    if(!thisGroup.fold)
-        return;
-    var elementIds = thisGroup.children;
-    var dist = PADDING_GROUP$1;
-    var index = display$1.indexOf(thisGroup) + 1;
-    for(var i = 0; i < elementIds.length; i++){
-        var thisElement = total$1.get(elementIds[i]);
-        thisElement.x = dist + thisGroup.x;
-        display$1.splice(index, 0, thisElement);
-        index++;
-        dist += (thisElement.width + PADDING$1);
-    }
-
-    var diff = dist - PADDING$1 + PADDING_GROUP$1 - thisGroup.width;
-    while(index < display$1.length){
-        display$1[index].x += diff;
-        index++;
-    }
-
-    thisGroup.width += diff;
-    thisGroup.y -= PADDING_GROUP$1;
-    thisGroup.height += (2 * PADDING_GROUP$1);
-    thisGroup.fold = false;
-
-    // If there are parent groups
-    var tempGroup = thisGroup;
-    while(tempGroup.parent != -1){
-        tempGroup = total$1.get(tempGroup.parent);
-        tempGroup.width += diff;
-        tempGroup.height += (2 * PADDING_GROUP$1);
-        tempGroup.y -= PADDING_GROUP$1;
-    }
-};
-
-ElementController.prototype.foldUpdateStatus = function(groupId){
-//function foldUpdateStatus(groupId) {
-    var thisGroup = total$1.get(groupId);
-    if(thisGroup.fold)
-        return;
-    var elementIds = thisGroup.children;
-    var index = 0;
-    for(var i = 0; i < elementIds.length; i++){
-        var thisElement = total$1.get(elementIds[i]);
-        index = display$1.indexOf(thisElement);
-        display$1.splice(index, 1); // Remove elements in group from display
-    }
-
-    var diff = thisGroup.width - (thisGroup.name.length * ELEMENT_CH_WIDTH$1 + PADDING$1 * 2);
-    while(index < display$1.length){
-        display$1[index].x -= diff;
-        index++;
-    }
-
-    thisGroup.width -= diff;
-    thisGroup.y += PADDING_GROUP$1;
-    thisGroup.height -= (2 * PADDING_GROUP$1);
-    thisGroup.fold = true;
-
-    // If there are parent groups
-    var tempGroup = thisGroup;
-    while(tempGroup.parent != -1){
-        tempGroup = total$1.get(tempGroup.parent);
-        tempGroup.width -= diff;
-        tempGroup.height -= (2 * PADDING_GROUP$1);
-        tempGroup.y += PADDING_GROUP$1;
-    }
-};
-
+import {default as ElementController} from "./elementController.js"
+var ELEMENT_HEIGHT = 40;
+var ELEMENT_CH_WIDTH = 10;
 var ELEMENT_CH_HEIGHT = 4;
+var PADDING = 20;
 var PADDING_GROUP = 10;
 
 var total = [];
 var display = [];
 var elementController;
 
-function SDViewer(objects, groups){
+export default function SDViewer(objects, groups){
     var ec = new ElementController(objects, groups);
     elementController = ec;
     total = ec.total;
@@ -201,7 +48,7 @@ function drawElement(element) {
     // Draw rectangles
     var rect = tempG.append("rect")
                 .attr({x: 0, y: 0, width: element.width, height: element.height})
-                .style("stroke", "black");
+                .style("stroke", "black")
     if(element.isGroup())
         rect.style("fill", "yellow");
     else
@@ -324,9 +171,3 @@ function foldUpdateSVG(thisGroup) {
             }
         });
 }
-
-exports.SDViewer = SDViewer;
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-})));

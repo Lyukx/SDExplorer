@@ -1,1 +1,1 @@
-export {default as DisplayElements} from "./src/elementController";
+export {default as SDViewer} from "./src/drawer.js";
