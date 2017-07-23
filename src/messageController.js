@@ -20,11 +20,8 @@ export default function MessageController(messages, mainThreads){
 }
 
 MessageController.prototype.updateMessageInit = function(total, displaySet){
-    console.log(messages);
     this.messages.forEach(function(message){
         while(!displaySet.has(message.from)){
-            console.log(message);
-            console.log(total);
             var parent = total.get(message.from).parent;
             message.from = parent;
             if(parent == -1){
@@ -41,7 +38,7 @@ MessageController.prototype.updateMessageInit = function(total, displaySet){
     });
 }
 
-MessageController.prototype.updateMesageOnFold = function(group){
+MessageController.prototype.updateMessageOnFold = function(group){
     this.messages.forEach(function(message){
         if(group.children.indexOf(message.from) != -1)
             message.from = group.id;
@@ -50,9 +47,9 @@ MessageController.prototype.updateMesageOnFold = function(group){
     });
 }
 
-MessageController.prototype.updateMesageOnUnfold = function(group, total, displaySet){
+MessageController.prototype.updateMessageOnUnfold = function(total, displaySet){
     this.messages.forEach(function(message){
-        if(message.from == group.id){
+        if(!displaySet.has(message.from)){
             message.from = origin[message.id].from;
             while(!displaySet.has(message.from)){
                 var parent = total.get(message.from).parent;
@@ -62,7 +59,7 @@ MessageController.prototype.updateMesageOnUnfold = function(group, total, displa
                 }
             }
         }
-        if(message.to == group.id){
+        if(!displaySet.has(message.to)){
             message.to = origin[message.id].to;
             while(!displaySet.has(message.to)){
                 var parent = total.get(message.to).parent;
