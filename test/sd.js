@@ -247,6 +247,7 @@ MessageController.prototype.updateStatus = function(){
     var position = 0;
     var validMessageNum = 0;
     var enabledMessages = [];
+    var feedBack = 0;
     for(var i = 0; i < this.messages.length; i++){
         var thisMsg = this.messages[i];
         if(thisMsg.to == thisMsg.from || thisMsg.from == -1 || thisMsg.to == -1){
@@ -259,7 +260,8 @@ MessageController.prototype.updateStatus = function(){
                 enabledMessages.push(thisMsg);
             thisMsg.valid = true;
             thisMsg.scale = 1;
-            position += MSG_HEIGHT$1;
+            position += MSG_HEIGHT$1 + feedBack;
+            feedBack = 0;
             thisMsg.position = position;
             activeStartMsgId = thisMsg.id;
             validMessageNum ++;
@@ -275,10 +277,17 @@ MessageController.prototype.updateStatus = function(){
             if(thisMsg.from == lastMsg.to){
                 position += MSG_HEIGHT$1 / 2;
                 thisMsg.position = position;
-                position += MSG_HEIGHT$1 / 2;
+                feedBack += MSG_HEIGHT$1 / 2;
             }
             else{
-                position += MSG_HEIGHT$1;
+                var nest = 0;
+                var tempMsg = lastMsg;
+                while(tempMsg.from != thisMsg.from){
+                    nest += MSG_HEIGHT$1 / 2;
+                    feedBack -= MSG_HEIGHT$1 / 2;
+                    tempMsg = this.messages[tempMsg.id - 1];
+                }
+                position += MSG_HEIGHT$1 + nest;
                 thisMsg.position = position;
             }
             // Change the scale of messages from main thread
@@ -300,6 +309,7 @@ MessageController.prototype.updateStatus = function(){
 
 var ELEMENT_HEIGHT = 40;
 var ELEMENT_CH_HEIGHT = 4;
+var PADDING = 20;
 var PADDING_GROUP = 10;
 
 var MSG_ACTIVE_WIDTH = 10;
@@ -411,7 +421,6 @@ function unfold(group){
     var enable = messageController.updateStatus();
     unfoldUpdateSVG(group, enable);
     updateMainThread();
-    console.log("from " + messages[0].from + " to " + messages[0].to);
 }
 
 function fold(group){
@@ -439,6 +448,7 @@ function drawMessage(message) {
 
     var tempG = d3.select(".messages-layout").append("g");
     // Draw left active bar if needed
+    /* TODO: bug fix
     if(!mainThread.has(message.from)){
         tempG.append("rect")
             .attr("class", "leftActiveBlock")
@@ -446,7 +456,23 @@ function drawMessage(message) {
             .attr("transform", "translate(" + x1 + "," + y1 + ")")
             .style("stroke", "black")
 		    .style("fill", "#CCC");
+    }*/
+
+    // Write messages
+    if(leftToRight){
+        tempG.append("text")
+            .attr("class", "message-text")
+            .text(function(d){ return message.message; })
+            .attr("transform", "translate(" + (x1 + PADDING) + "," + y1 + ")");
     }
+    else{
+        tempG.append("text")
+            .attr("class", "message-text")
+            .text(function(d){ return message.message; })
+            .attr("transform", "translate(" + (x1 - MSG_ACTIVE_WIDTH) + "," + y1 + ")")
+            .attr("text-anchor", "end");
+    }
+
 
     // Draw call line
     tempG.append("line")
@@ -494,7 +520,7 @@ function drawElement(element) {
     var tempG = d3.select(".objects-layout").append("g");
     // Draw base line
     var x = element.width / 2;
-    var y2 = messageController.validMessageNum * MSG_HEIGHT + objectPadding / 2 + ELEMENT_HEIGHT / 2;
+    var y2 = (messageController.validMessageNum + 1) * MSG_HEIGHT + objectPadding / 2 + ELEMENT_HEIGHT / 2;
     tempG.append("line")
         .attr("class", "baseLine")
         .attr("x1", x)
@@ -582,14 +608,27 @@ function updateMsgSVG(){
             var y2 = y1 + MSG_PADDING;
             var h2 = h1 - 2 * MSG_PADDING;
 
+            /* TODO: bug fix left box
             if(!mainThread.has(message.from)){
                 d3.select(this).select(".leftActiveBlock")
                     .transition()
                     .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h1})
                     .attr("transform", "translate(" + x1 + "," + y1 + ")");
-            }
+            }*/
 
             var leftToRight = (total.get(message.from).x < total.get(message.to).x);
+
+            // Update messages
+            if(leftToRight){
+                d3.select(this).select(".message-text")
+                    .transition()
+                    .attr("transform", "translate(" + (x1 + PADDING) + "," + y1 + ")");
+            }
+            else{
+                d3.select(this).select(".message-text")
+                    .transition()
+                    .attr("transform", "translate(" + (x1 - MSG_ACTIVE_WIDTH) + "," + y1 + ")");
+            }
 
             d3.select(this).select(".callLine")
                 .transition()
@@ -612,7 +651,7 @@ function updateMsgSVG(){
         });
 
     d3.selectAll(".baseLine")
-        .attr("y2", messageController.validMessageNum * MSG_HEIGHT + objectPadding / 2 + ELEMENT_HEIGHT / 2);
+        .attr("y2", (messageController.validMessageNum + 1) * MSG_HEIGHT + objectPadding / 2 + ELEMENT_HEIGHT / 2);
 }
 
 function unfoldUpdateSVG(thisGroup, enable) {

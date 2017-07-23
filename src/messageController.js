@@ -78,6 +78,7 @@ MessageController.prototype.updateStatus = function(){
     var position = 0;
     var validMessageNum = 0;
     var enabledMessages = [];
+    var feedBack = 0;
     for(var i = 0; i < this.messages.length; i++){
         var thisMsg = this.messages[i];
         if(thisMsg.to == thisMsg.from || thisMsg.from == -1 || thisMsg.to == -1){
@@ -90,7 +91,8 @@ MessageController.prototype.updateStatus = function(){
                 enabledMessages.push(thisMsg);
             thisMsg.valid = true;
             thisMsg.scale = 1;
-            position += MSG_HEIGHT;
+            position += MSG_HEIGHT + feedBack;
+            feedBack = 0;
             thisMsg.position = position;
             activeStartMsgId = thisMsg.id;
             validMessageNum ++;
@@ -106,10 +108,17 @@ MessageController.prototype.updateStatus = function(){
             if(thisMsg.from == lastMsg.to){
                 position += MSG_HEIGHT / 2;
                 thisMsg.position = position;
-                position += MSG_HEIGHT / 2;
+                feedBack += MSG_HEIGHT / 2;
             }
             else{
-                position += MSG_HEIGHT;
+                var nest = 0;
+                var tempMsg = lastMsg;
+                while(tempMsg.from != thisMsg.from){
+                    nest += MSG_HEIGHT / 2;
+                    feedBack -= MSG_HEIGHT / 2;
+                    tempMsg = this.messages[tempMsg.id - 1];
+                }
+                position += MSG_HEIGHT + nest;
                 thisMsg.position = position;
             }
             // Change the scale of messages from main thread

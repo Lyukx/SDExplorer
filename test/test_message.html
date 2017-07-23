@@ -77,14 +77,14 @@ var groups = [{id: 6, objs: [1, 2], name:"group1"},
 
 var messages = [{from: 0, to: 1, caller: null, message:"new", isNew: false},
                 {from: 0, to: 1, caller: null, message:"setLevel(0)", isNew: false},
-                {from: 0, to: 1, caller: null, message:"insert(someNode)", isNew: false},
+                {from: 1, to: 2, caller: null, message:"insert(someNode)", isNew: false},
                 {from: 0, to: 1, caller: "node", message: "remove()", isNew: false},
-                {from: 0, to: 3, caller: "level", message: "getLevel()", isNew: false},
-                {from: 0, to: 3, caller: "adjList", message: "getAdjacentNodes()", isNew: false},
-                {from: 0, to: 4, caller: "adj", message: "get(i)", isNew: false},
-                {from: 0, to: 5, caller: "nodeLevel", message: "getLevel()", isNew: false},
-                {from: 0, to: 5, caller: null, message:"setLevel(level+1)", isNew: false},
-                {from: 0, to: 1, caller: null, message:"insert(adj)", isNew: false},
+                {from: 1, to: 2, caller: "level", message: "getLevel()", isNew: false},
+                {from: 2, to: 3, caller: "adjList", message: "getAdjacentNodes()", isNew: false},
+                {from: 1, to: 3, caller: "adj", message: "get(i)", isNew: false},
+                {from: 0, to: 1, caller: "nodeLevel", message: "getLevel()", isNew: false},
+                {from: 1, to: 2, caller: null, message:"setLevel(level+1)", isNew: false},
+                {from: 1, to: 3, caller: null, message:"insert(adj)", isNew: false},
                 {from: 0, to: 1, caller: null, message:"destroy()", isNew: false}];
 
 var elements = new sd.SDViewer(objects, groups, messages);
