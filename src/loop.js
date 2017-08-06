@@ -4,4 +4,5 @@
 export function Loop(loopSet, stealthSet){
     this.loopSet = loopSet;
     this.stealthSet = stealthSet;
+    this.loopSize = loopSet.length;
 }

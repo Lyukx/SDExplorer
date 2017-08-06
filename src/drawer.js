@@ -58,17 +58,36 @@ SDViewer.prototype.drawAll = function() {
         .append("g")
         .attr("class", "messages-layout");
 
+    d3.select("svg")
+        .append("g")
+        .attr("class", "loop-layout")
+
     // Draw elements (groups and objects)
     display.forEach(function(element){
         drawElement(element);
     });
 
     // Draw main thread's active block
-    var h = messageController.validMessageNum * MSG_HEIGHT;
+    drawMainThread();
+
+    // Draw messages
+    messages.forEach(function(message){
+        if(message.valid)
+            drawMessage(message);
+    });
+
+    // Draw loops
+    drawAllLoops();
+};
+
+function drawMainThread(){
+    var lastValidMsg = messageController.lastValidMsg;
+    var firstValidMsg = messageController.firstValidMsg;
+    var h = lastValidMsg.position - firstValidMsg.position + MSG_HEIGHT + 4 * MSG_PADDING;
     mainThread.forEach(function(id){
         var mainThreadObj = total.get(id);
         var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
-        var y = MSG_HEIGHT;
+        var y = firstValidMsg.position - 2 * MSG_PADDING;
         d3.select(".messages-layout").append("rect")
                 .attr("class", "mainThreadActiveBar")
                 .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h})
@@ -76,16 +95,12 @@ SDViewer.prototype.drawAll = function() {
                 .style("stroke", "black")
                 .style("fill", "#CCC");
     });
-
-    // Draw messages
-    messages.forEach(function(message){
-        if(message.valid)
-            drawMessage(message);
-    });
-};
+}
 
 function updateMainThread(){
-    var h = messageController.validMessageNum * MSG_HEIGHT;
+    var lastValidMsg = messageController.lastValidMsg;
+    var firstValidMsg = messageController.firstValidMsg;
+    var h = lastValidMsg.position - firstValidMsg.position + MSG_HEIGHT + 4 * MSG_PADDING;
     var displaySet = new Set();
     display.forEach(function(element){
         if(!(element.isGroup() && !element.fold))
@@ -97,7 +112,7 @@ function updateMainThread(){
         }
         var mainThreadObj = total.get(id);
         var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
-        var y = MSG_HEIGHT;
+        var y = firstValidMsg.position - 2 * MSG_PADDING;
         d3.select(".mainThreadActiveBar")
                 .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h})
                 .attr("transform", "translate(" + x + "," + y + ")");
@@ -115,6 +130,7 @@ function unfold(group){
     var enable = messageController.updateStatus();
     unfoldUpdateSVG(group, enable);
     updateMainThread();
+    updateAllLoops();
 }
 
 function fold(group){
@@ -123,6 +139,7 @@ function fold(group){
     messageController.updateStatus();
     foldUpdateSVG(group);
     updateMainThread();
+    updateAllLoops();
 }
 
 function drawMessage(message) {
@@ -282,6 +299,52 @@ function drawElement(element) {
     return tempG;
 }
 
+function drawLoop(loop){
+    var startMessage = messages[loop.loopSet[0]];
+    var endMessage = messages[loop.loopSet[loop.loopSet.length - 1]];
+    var maxWidth = 0;
+    loop.loopSet.forEach(function(thisMessageId){
+        var from = total.get(messages[thisMessageId].from);
+        var to = total.get(messages[thisMessageId].to);
+        if(to.x - from.x > maxWidth)
+            maxWidth = to.x + to.width - from.x;
+    });
+    // size of rectangle
+    var x = total.get(startMessage.from).x;
+    var y = startMessage.position - 2 * MSG_PADDING;
+    var h = endMessage.position - startMessage.position + MSG_HEIGHT + 2 * MSG_PADDING;
+    var w = maxWidth;
+
+    var tempG = d3.select(".loop-layout").append("g");
+    tempG.append("rect")
+        .attr("class", "loop")
+        .attr({x: 0, y: 0, width: w, height: h})
+        .style("stroke", "#00008B")
+        .style("fill-opacity", "0");
+
+    tempG.append("rect")
+        .attr({x:0, y:0, width:40, height:20})
+        .style("stroke", "black")
+        .style("fill", "#B0E0E6");
+
+    tempG.append("text")
+        .text(function(d){ return "loop"; })
+        .attr("transform", "translate(5,14)");
+
+    tempG.attr("transform", "translate(" + x + "," + y + ")");
+}
+
+function drawAllLoops(){
+    messageController.loops.forEach(function(loop){
+        drawLoop(loop);
+    });
+}
+
+function updateAllLoops(){
+    d3.selectAll(".loop").remove();
+    drawAllLoops();
+}
+
 function updateMsgSVG(){
     d3.selectAll(".message")
         .each(function(message){
@@ -301,14 +364,6 @@ function updateMsgSVG(){
             var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2;
             var y2 = y1 + MSG_PADDING;
             var h2 = h1 - 2 * MSG_PADDING;
-
-            /* TODO: bug fix left box
-            if(!mainThread.has(message.from)){
-                d3.select(this).select(".leftActiveBlock")
-                    .transition()
-                    .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h1})
-                    .attr("transform", "translate(" + x1 + "," + y1 + ")");
-            }*/
 
             var leftToRight = (total.get(message.from).x < total.get(message.to).x);
 
@@ -345,7 +400,7 @@ function updateMsgSVG(){
         });
 
     d3.selectAll(".baseLine")
-        .attr("y2", (messageController.validMessageNum + 1) * MSG_HEIGHT + objectPadding / 2 + ELEMENT_HEIGHT / 2);
+        .attr("y2", (messageController.lastValidMsg.position - messageController.firstValidMsg.position + 2 * MSG_HEIGHT) + objectPadding / 2 + ELEMENT_HEIGHT / 2);
 }
 
 function unfoldUpdateSVG(thisGroup, enable) {
