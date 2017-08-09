@@ -66,7 +66,7 @@ svg.append("svg:defs").selectAll("marker")
 </script>
 <script>
 var objects = [];
-for(var i = 0; i < 2; i++){
+for(var i = 0; i < 1000; i++){
     objects.push({id: i, name: "object" + i, type: "Object" + i, invisible: false});
 }
 
@@ -74,7 +74,7 @@ var groups = [];
 
 var messages = [];
 for(var i = 1; i < 1000; i++){
-    messages.push({from: 0, to: 1, caller: null, message:"foo", isNew: false});
+    messages.push({from: 0, to: Math.floor(Math.random() * i), caller: null, message:"foo", isNew: false});
 }
 
 var elements = new sd.SDViewer(objects, groups, messages);

@@ -300,6 +300,8 @@ function drawElement(element) {
 }
 
 function drawLoop(loop){
+    if(loop.loopSet.length == 0)
+        return;
     var startMessage = messages[loop.loopSet[0]];
     var endMessage = messages[loop.loopSet[loop.loopSet.length - 1]];
     var maxWidth = 0;

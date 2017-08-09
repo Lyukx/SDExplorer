@@ -21,7 +21,7 @@ export default function MessageController(messages, mainThreads){
 
     origin = this.origin;
     loopDetector = new LoopDetector();
-    this.loops = loopDetector.detect(messages);
+    this.loops = loopDetector.detect(this.messages);
     this.loopStealthSet = loopDetector.getAllStealth();
 
     this.firstValidMsg = this.messages[0];
@@ -84,7 +84,7 @@ MessageController.prototype.updateMessageOnUnfold = function(total, displaySet){
 MessageController.prototype.updateStatus = function(){
     var activeSet = new Set();
     var activeStartMsgId;
-    var position = - MSG_HEIGHT / 2;
+    var position = 0;
     var validMessageNum = 0;
     var enabledMessages = [];
     var feedBack = 0;
