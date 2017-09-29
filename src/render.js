@@ -10,7 +10,7 @@ var MSG_ACTIVE_WIDTH = 10;
 var MSG_HEIGHT = 80;
 var MSG_PADDING = MSG_HEIGHT / 8
 
-var objectPadding = ELEMENT_HEIGHT;
+var ELEMENT_PADDING = ELEMENT_HEIGHT;
 
 var total = [];
 var display = [];
@@ -19,6 +19,13 @@ var messages = [];
 var origin = [];
 var mainThread; //TODO add multi-thread
 var messageController;
+
+// Set and control display window
+var diagramSizeX;
+var diagramSizeY;
+var sizeSetted;
+var diagramStartObj;
+var diagramStartMsg;
 
 export default function SDViewer(objects, groups, msgs){
     var ec = new ElementController(objects, groups);
@@ -44,24 +51,64 @@ export default function SDViewer(objects, groups, msgs){
     var mc = new MessageController(msgs, mainThreadSet);
     mc.updateMessageInit(total, displaySet);
     mc.updateStatus();
-    messages = mc.messages;
+    messages = mc.validMessages;
     origin = mc.origin;
     messageController = mc;
+
+    generateLayout();
+
+    sizeSetted = false;
+}
+
+SDViewer.prototype.setDiagramDisplaySize = function(x, y) {
+    diagramSizeX = x;
+    diagramSizeY = y;
+    sizeSetted = true;
+    this.setDiagramDisplayHead(0, 0);
+}
+
+SDViewer.prototype.setDiagramDisplayHead = function(x, y) {
+    diagramStartObj = x;
+    diagramStartMsg = y;
+}
+
+SDViewer.prototype.getMiddleObjX = function() {
+    if (this.getMiddleObjIndex() < display.length){
+        return display[this.getMiddleObjIndex()].x;
+    }
+    else {
+        // Return -1 means rightest part is displayed
+        return -1;
+    }
+}
+
+SDViewer.prototype.getMiddleObjIndex = function() {
+    return diagramStartObj + (diagramSizeX / 2);
+}
+
+SDViewer.prototype.getHeadObjX = function() {
+    return display[diagramStartObj].x;
+}
+
+SDViewer.prototype.getMiddleMsgY = function() {
+    if (this.getMiddleMsgIndex() < messages.length){
+        return messages[this.getMiddleMsgIndex()].position;
+    }
+    else {
+        // Return -1 means bottom part is displayed
+        return -1;
+    }
+}
+
+SDViewer.prototype.getMiddleMsgIndex = function() {
+    return diagramStartMsg + (diagramSizeY / 2);
+}
+
+SDViewer.prototype.getHeadMsgY = function() {
+    return messages[diagramStartMsg].position;
 }
 
 SDViewer.prototype.drawAll = function() {
-    d3.select("svg")
-        .append("g")
-        .attr("class", "objects-layout");
-
-    d3.select("svg")
-        .append("g")
-        .attr("class", "messages-layout");
-
-    d3.select("svg")
-        .append("g")
-        .attr("class", "loop-layout")
-
     // Draw elements (groups and objects)
     display.forEach(function(element){
         drawElement(element);
@@ -72,13 +119,45 @@ SDViewer.prototype.drawAll = function() {
 
     // Draw messages
     messages.forEach(function(message){
-        if(message.valid)
-            drawMessage(message);
+        drawMessage(message);
     });
+}
 
-    // Draw loops
-    drawAllLoops();
-};
+SDViewer.prototype.drawPart = function() {
+    for(var i = diagramStartObj; i < diagramStartObj + diagramSizeX; i++){
+        if(i >= display.length)
+            break;
+        drawElement(display[i]).x;
+    }
+    for(var i = diagramStartMsg; i < diagramStartMsg + diagramSizeY; i++){
+        if(i >= messages.length)
+            break;
+        drawMessage(messages[i]);
+    }
+}
+
+SDViewer.prototype.clearAll = function() {
+    d3.select(".messages-layout").remove();
+    d3.select(".objects-layout").remove();
+    d3.select(".loop-layout").remove();
+
+    generateLayout();
+}
+
+function generateLayout() {
+    // Add 3 layout into svg
+    d3.select("svg")
+        .append("g")
+        .attr("class", "messages-layout");
+
+    d3.select("svg")
+        .append("g")
+        .attr("class", "loop-layout");
+
+    d3.select("svg")
+        .append("g")
+        .attr("class", "objects-layout");
+}
 
 function drawMainThread(){
     var lastValidMsg = messageController.lastValidMsg;
@@ -130,7 +209,6 @@ function unfold(group){
     var enable = messageController.updateStatus();
     unfoldUpdateSVG(group, enable);
     updateMainThread();
-    updateAllLoops();
 }
 
 function fold(group){
@@ -139,7 +217,6 @@ function fold(group){
     messageController.updateStatus();
     foldUpdateSVG(group);
     updateMainThread();
-    updateAllLoops();
 }
 
 function drawMessage(message) {
@@ -154,20 +231,21 @@ function drawMessage(message) {
     var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2;
     var y2 = y1 + MSG_PADDING;
     var h2 = h1 - 2 * MSG_PADDING;
+    if(sizeSetted){
+        var xMin = diagramStartObj > 0 ? display[diagramStartObj - 1].x : display[0].x;
+        var last = diagramStartObj + diagramSizeX;
+        if(last >= display.length)
+            last = display.length - 1;
+        var xMax = display[last].x;
+        if(x1 < xMin)
+            x1 = xMin;
+        if(x2 > xMax)
+            x2 = xMax;
+    }
 
     var leftToRight = (total.get(message.from).x < total.get(message.to).x);
 
     var tempG = d3.select(".messages-layout").append("g");
-    // Draw left active bar if needed
-    /* TODO: bug fix
-    if(!mainThread.has(message.from)){
-        tempG.append("rect")
-            .attr("class", "leftActiveBlock")
-            .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h1})
-            .attr("transform", "translate(" + x1 + "," + y1 + ")")
-            .style("stroke", "black")
-		    .style("fill", "#CCC");
-    }*/
 
     // Write messages
     if(leftToRight){
@@ -231,7 +309,9 @@ function drawElement(element) {
     var tempG = d3.select(".objects-layout").append("g");
     // Draw base line
     var x = element.width / 2;
-    var y2 = (messageController.validMessageNum + 1) * MSG_HEIGHT + objectPadding / 2 + ELEMENT_HEIGHT / 2;
+    // a fixed length
+    var msgNum = (sizeSetted ? diagramSizeY : messageController.validMessageNum) + 1;
+    var y2 = msgNum * MSG_HEIGHT + ELEMENT_PADDING / 2 + ELEMENT_HEIGHT / 2;
     tempG.append("line")
         .attr("class", "baseLine")
         .attr("x1", x)
@@ -299,54 +379,6 @@ function drawElement(element) {
     return tempG;
 }
 
-function drawLoop(loop){
-    if(loop.loopSet.length == 0)
-        return;
-    var startMessage = messages[loop.loopSet[0]];
-    var endMessage = messages[loop.loopSet[loop.loopSet.length - 1]];
-    var maxWidth = 0;
-    loop.loopSet.forEach(function(thisMessageId){
-        var from = total.get(messages[thisMessageId].from);
-        var to = total.get(messages[thisMessageId].to);
-        if(to.x - from.x > maxWidth)
-            maxWidth = to.x + to.width - from.x;
-    });
-    // size of rectangle
-    var x = total.get(startMessage.from).x;
-    var y = startMessage.position - 2 * MSG_PADDING;
-    var h = endMessage.position - startMessage.position + MSG_HEIGHT + 2 * MSG_PADDING;
-    var w = maxWidth;
-
-    var tempG = d3.select(".loop-layout").append("g");
-    tempG.append("rect")
-        .attr("class", "loop")
-        .attr({x: 0, y: 0, width: w, height: h})
-        .style("stroke", "#00008B")
-        .style("fill-opacity", "0");
-
-    tempG.append("rect")
-        .attr({x:0, y:0, width:40, height:20})
-        .style("stroke", "black")
-        .style("fill", "#B0E0E6");
-
-    tempG.append("text")
-        .text(function(d){ return "loop"; })
-        .attr("transform", "translate(5,14)");
-
-    tempG.attr("transform", "translate(" + x + "," + y + ")");
-}
-
-function drawAllLoops(){
-    messageController.loops.forEach(function(loop){
-        drawLoop(loop);
-    });
-}
-
-function updateAllLoops(){
-    d3.selectAll(".loop").remove();
-    drawAllLoops();
-}
-
 function updateMsgSVG(){
     d3.selectAll(".message")
         .each(function(message){
@@ -402,7 +434,7 @@ function updateMsgSVG(){
         });
 
     d3.selectAll(".baseLine")
-        .attr("y2", (messageController.lastValidMsg.position - messageController.firstValidMsg.position + 2 * MSG_HEIGHT) + objectPadding / 2 + ELEMENT_HEIGHT / 2);
+        .attr("y2", (messageController.lastValidMsg.position - messageController.firstValidMsg.position + 2 * MSG_HEIGHT) + ELEMENT_PADDING / 2 + ELEMENT_HEIGHT / 2);
 }
 
 function unfoldUpdateSVG(thisGroup, enable) {
@@ -434,7 +466,7 @@ function unfoldUpdateSVG(thisGroup, enable) {
             }
         });
 
-    display.forEach(function(element){objectPadding = Math.max(objectPadding, element.height);});
+    display.forEach(function(element){ELEMENT_PADDING = Math.max(ELEMENT_PADDING, element.height);});
 
     for(var i = 0; i < thisGroup.children.length; i++){
         var elementId = thisGroup.children[i];
@@ -465,7 +497,7 @@ function foldUpdateSVG(thisGroup) {
                     .transition()
                     .attr({width: element.width, height:element.height});
 
-                objectPadding = Math.max(objectPadding, element.height);
+                ELEMENT_PADDING = Math.max(ELEMENT_PADDING, element.height);
 
                 if(element == thisGroup){
                     d3.select(this)
@@ -488,8 +520,8 @@ function foldUpdateSVG(thisGroup) {
             }
         });
 
-    objectPadding = ELEMENT_HEIGHT;
-    display.forEach(function(element){objectPadding = Math.max(objectPadding, element.height);});
+    ELEMENT_PADDING = ELEMENT_HEIGHT;
+    display.forEach(function(element){ELEMENT_PADDING = Math.max(ELEMENT_PADDING, element.height);});
     // Update messages
     updateMsgSVG();
 }

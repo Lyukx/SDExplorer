@@ -5,80 +5,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
 <script src="sd.js"></script>
 <script>
-// Set svg zoomable and draggable
-var width = window.innerWidth,
-    height = window.innerHeight;
-var curPos_x, curPos_y, mousePos_x, mousePos_y;
-var isMouseDown, oldScale = 1;
-var viewBox_x = - 10;
-var viewBox_y = - 10;
-var svg = d3.select("#drawArea")
-                .append("svg")
-                .attr("width", width)
-                .attr("height", height)
-                .call(d3.behavior.zoom()
-            	.scaleExtent([0.1, 10])
-            	.on("zoom", function () {
-	                if (oldScale !== d3.event.scale) {
-	                    var scale = oldScale / d3.event.scale;
-	                    oldScale = d3.event.scale;
-	                    viewBox_x = curPos_x - scale * (curPos_x - viewBox_x);
-	                    viewBox_y = curPos_y - scale * (curPos_y - viewBox_y);
-	                    svg.attr("viewBox", viewBox_x + " " + viewBox_y + " " + width / oldScale + " " + height / oldScale);
-	                }
-	            }));
-svg.on("mousedown", function () {
-    isMouseDown = true;
-    mousePos_x = d3.mouse(this)[0];
-    mousePos_y = d3.mouse(this)[1];
-});
-
-svg.on("mouseup", function () {
-    isMouseDown = false;
-    viewBox_x = viewBox_x - d3.mouse(this)[0] + mousePos_x;
-    viewBox_y = viewBox_y - d3.mouse(this)[1] + mousePos_y;
-    svg.attr("viewBox", viewBox_x + " " + viewBox_y + " " + width / oldScale + " " + height / oldScale);
-});
-
-svg.on("mousemove", function () {
-    curPos_x = d3.mouse(this)[0];
-    curPos_y = d3.mouse(this)[1];
-    if (isMouseDown) {
-        viewBox_x = viewBox_x - d3.mouse(this)[0] + mousePos_x;
-        viewBox_y = viewBox_y - d3.mouse(this)[1] + mousePos_y;
-        svg.attr("viewBox", viewBox_x + " " + viewBox_y + " " + width / oldScale + " " + height / oldScale);
-    }
-});
-
-// Arrow style
-svg.append("svg:defs").selectAll("marker")
-    .data(["end"])
-    .enter().append("svg:marker")
-    .attr("id", String)
-    .attr("viewBox", "0 -5 10 10")
-    .attr("refX", 10)
-    .attr("refY", 0)
-    .attr("markerWidth", 10)
-    .attr("markerHeight", 10)
-    .attr("orient", "auto")
-    .append("svg:path")
-    .attr("d", "M0,-5L10,0L0,5");
-</script>
-<script>
 var objects = [];
-for(var i = 0; i < 1000; i++){
+for(var i = 0; i < 10000; i++){
     objects.push({id: i, name: "object" + i, type: "Object" + i, invisible: false});
 }
 
 var groups = [];
 
 var messages = [];
-for(var i = 1; i < 1000; i++){
-    messages.push({from: 0, to: Math.floor(Math.random() * i), caller: null, message:"foo", isNew: false});
+for(var i = 0; i < 400000; i++){
+    messages.push({from: 0, to: Math.floor(Math.random() * 9998) + 1, caller: null, message:"foo" + i, isNew: false});
 }
 
-var elements = new sd.SDViewer(objects, groups, messages);
-elements.drawAll();
+var elements = new sd.SVG(objects, groups, messages);
 
 </script>
 </body>
