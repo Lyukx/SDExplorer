@@ -27,6 +27,8 @@ var sizeSetted;
 var diagramStartObj;
 var diagramStartMsg;
 
+var active;
+
 export default function SDViewer(objects, groups, msgs){
     var ec = new ElementController(objects, groups);
     elementController = ec;
@@ -155,12 +157,12 @@ SDViewer.prototype.drawPart = function() {
             break;
         drawElement(display[i]);
     }
+    drawMainThread();
     for(var i = diagramStartMsg; i < diagramStartMsg + diagramSizeY; i++){
         if(i >= messages.length)
             break;
         drawMessage(messages[i]);
     }
-    drawMainThread();
     updateTopY();
 }
 
@@ -325,8 +327,40 @@ function drawMessage(message) {
 			.style("stroke", "black")
 			.style("fill", "#CCC");
 
+    // Message info block
+    tempG.append("rect")
+        .attr("class", "message-click-active-block")
+        .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
+        .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")")
+        .style("fill", "#99ccff")
+        .style("fill-opacity", "0")
+        .datum(message.id);
+
     tempG.attr("class", "message")
-        .datum(message);
+        .datum(message)
+        .on("click", function(thisMessage){
+            var thisActive = d3.select(this).select(".message-click-active-block");
+            if(active != undefined){
+                active.style("fill-opacity", "0");
+                if(active.datum() != thisActive.datum()){
+                    thisActive.style("fill-opacity", "0.4");
+                    active = thisActive;
+                    var curX = d3.mouse(this)[0];
+                    var curY = d3.mouse(this)[1];
+                    console.log(curX, curY);
+                }
+                else{
+                    active = undefined;
+                }
+            }
+            else{
+                thisActive.style("fill-opacity", "0.4");
+                active = thisActive;
+                var curX = d3.mouse(this)[0];
+                var curY = d3.mouse(this)[1];
+                console.log(curX, curY);
+            }
+        });
 }
 
 function allFolded(group) {
