@@ -50,10 +50,8 @@ function updateSvg(x, y) {
 }
 
 function keepElementTop() {
-    if(viewBox_y > 0){
-        d3.select(".objects-layout")
-            .attr("transform", "translate(0," + viewBox_y + ")");
-    }
+    d3.select(".objects-layout")
+        .attr("transform", "translate(0," + (viewBox_y - sdv.getTopY())  + ")");
 }
 
 function setSVG(){
@@ -75,7 +73,7 @@ function setSVG(){
     	                    var scale = oldScale / d3.event.scale;
     	                    oldScale = d3.event.scale;
     	                    viewBox_x = curPos_x - scale * (curPos_x - viewBox_x);
-    	                    viewBox_y = curPos_y - scale * (curPos_y - viewBox_y);
+    	                    viewBox_y = Math.max(curPos_y - scale * (curPos_y - viewBox_y), 2 * sdv.getTopY());
     	                    svg.attr("viewBox", viewBox_x + " " + viewBox_y + " " + width / oldScale + " " + height / oldScale);
                             onDiagramMoved();
                         }
@@ -89,7 +87,7 @@ function setSVG(){
     svg.on("mouseup", function () {
         isMouseDown = false;
         viewBox_x = viewBox_x - d3.mouse(this)[0] + mousePos_x;
-        viewBox_y = viewBox_y - d3.mouse(this)[1] + mousePos_y;
+        viewBox_y = Math.max(viewBox_y - d3.mouse(this)[1] + mousePos_y, 2 * sdv.getTopY());
         svg.attr("viewBox", viewBox_x + " " + viewBox_y + " " + width / oldScale + " " + height / oldScale);
         onDiagramMoved();
     });
@@ -99,7 +97,7 @@ function setSVG(){
         curPos_y = d3.mouse(this)[1];
         if (isMouseDown) {
             viewBox_x = viewBox_x - d3.mouse(this)[0] + mousePos_x;
-            viewBox_y = viewBox_y - d3.mouse(this)[1] + mousePos_y;
+            viewBox_y = Math.max(viewBox_y - d3.mouse(this)[1] + mousePos_y, 2 * sdv.getTopY());
             svg.attr("viewBox", viewBox_x + " " + viewBox_y + " " + width / oldScale + " " + height / oldScale);
             onDiagramMoved();
         }
