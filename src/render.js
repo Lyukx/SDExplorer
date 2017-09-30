@@ -145,7 +145,10 @@ SDViewer.prototype.clearAll = function() {
 }
 
 function generateLayout() {
-    // Add 3 layout into svg
+    // Add layouts into svg
+    d3.select("svg")
+        .append("g")
+        .attr("class", "baseline-layout");
     d3.select("svg")
         .append("g")
         .attr("class", "messages-layout");
@@ -312,7 +315,7 @@ function drawElement(element) {
     // a fixed length
     var msgNum = (sizeSetted ? diagramSizeY : messageController.validMessageNum) + 1;
     var y2 = msgNum * MSG_HEIGHT + ELEMENT_PADDING / 2 + ELEMENT_HEIGHT / 2;
-    tempG.append("line")
+    d3.select(".baseline-layout").append("line")
         .attr("class", "baseLine")
         .attr("x1", x)
         .attr("y1", 0)
@@ -320,6 +323,8 @@ function drawElement(element) {
         .attr("y2", y2)
         .style("stroke", "black")
         .style("stroke-dasharray", "2,2,2")
+        .attr("id", "baseLine" + element.id)
+        .attr("transform", "translate(" + element.x + ", " + element.y + ")");
 
     // Draw rectangles
     var rect = tempG.append("rect")
@@ -450,17 +455,27 @@ function unfoldUpdateSVG(thisGroup, enable) {
                         .style("fill-opacity", "0")
                         .attr("transform", "translate(" + element.x + ", " + element.y + ")");
 
-                    d3.select(this).select(".baseLine")
+                    // hide the baseline
+                    d3.select("#baseLine" + element.id)
+                        .transition()
+                        .attr("transform", "translate(" + element.x + ", " + element.y + ")")
                         .style("opacity", 0);
                 }
                 else{
                     d3.select(this)
                         .transition()
                         .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+                    d3.select("#baseLine" + element.id)
+                        .transition()
+                        .attr("transform", "translate(" + element.x + ", " + element.y + ")");
                 }
             }
             else{
                 d3.select(this)
+                    .transition()
+                    .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+
+                d3.select("#baseLine" + element.id)
                     .transition()
                     .attr("transform", "translate(" + element.x + ", " + element.y + ")");
             }
@@ -474,6 +489,9 @@ function unfoldUpdateSVG(thisGroup, enable) {
         var temp = drawElement(thisElement);
         temp.attr("transform", "translate(" + thisGroup.x + ", " + (thisGroup.y + PADDING_GROUP) + ")");
         temp.transition()
+            .attr("transform", "translate(" + thisElement.x + ", " + thisElement.y + ")");
+        d3.select("#baseLine" + elementId)
+            .transition()
             .attr("transform", "translate(" + thisElement.x + ", " + thisElement.y + ")");
     }
 
@@ -490,6 +508,7 @@ function foldUpdateSVG(thisGroup) {
     d3.selectAll(".element-rectangle")
         .each(function(element){
             if(thisGroup.children.indexOf(element.id) != -1){
+                d3.select("#baseLine" + element.id).remove();
                 d3.select(this).remove();
             }
             else if(element.isGroup()){
@@ -504,17 +523,26 @@ function foldUpdateSVG(thisGroup) {
                         .transition()
                         .style("fill-opacity", "1")
                         .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                    d3.select(this).select(".baseLine")
-                        .style("opacity", 1);
+                    // show the baseline
+                    d3.select("#baseLine" + element.id)
+                        .transition()
+                        .style("opacity", 1)
+                        .attr("transform", "translate(" + element.x + ", " + element.y + ")");
                 }
                 else{
                     d3.select(this)
+                        .transition()
+                        .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+                    d3.select("#baseLine" + element.id)
                         .transition()
                         .attr("transform", "translate(" + element.x + ", " + element.y + ")");
                 }
             }
             else{
                 d3.select(this)
+                    .transition()
+                    .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+                d3.select("#baseLine" + element.id)
                     .transition()
                     .attr("transform", "translate(" + element.x + ", " + element.y + ")");
             }
