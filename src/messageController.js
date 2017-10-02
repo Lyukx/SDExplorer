@@ -78,12 +78,14 @@ MessageController.prototype.updateMessageOnUnfold = function(total, displaySet){
 
 MessageController.prototype.updateStatus = function(){
     var activeSet = new Set();
-    var activeStartMsgId;
-    var position = 0;
+    var activeStack = [];
+    var position = MSG_HEIGHT / 4;
     var validMessageNum = 0;
     var enabledMessages = [];
     var feedBack = 0;
     this.validMessages = [];
+
+    var lastValidMsg;
 
     for(var i = 0; i < this.messages.length; i++){
         var thisMsg = this.messages[i];
@@ -91,62 +93,59 @@ MessageController.prototype.updateStatus = function(){
         if(thisMsg.to == thisMsg.from || thisMsg.from == -1 || thisMsg.to == -1){
             thisMsg.valid = false;
         }
+
         // Message from main thread
         else if(this.mainThreads.has(thisMsg.from)){
+            position += (activeStack.length + 1) * MSG_HEIGHT / 2;
+            thisMsg.position = position;
+            // Add the message into active stack
+            activeStack = [];
+            activeStack.push(thisMsg);
             activeSet.clear();
             activeSet.add(thisMsg.to);
             if(!thisMsg.valid)
                 enabledMessages.push(thisMsg);
             thisMsg.valid = true;
             thisMsg.scale = 1;
-            position += MSG_HEIGHT + feedBack;
-            feedBack = 0;
-            thisMsg.position = position;
-            activeStartMsgId = thisMsg.id;
             validMessageNum ++;
             this.validMessages.push(thisMsg);
+            lastValidMsg = thisMsg;
         }
 
-        // Message from active class
+        // Active Stack is not empty and the message is from active object
         else if(activeSet.has(thisMsg.from)){
-            activeSet.add(thisMsg.to);
             if(!thisMsg.valid)
                 enabledMessages.push(thisMsg);
             thisMsg.valid = true;
             thisMsg.scale = 1;
-            // Decide the position
-            var lastMsg = this.messages[i - 1];
-            if(thisMsg.from == lastMsg.to){
-                position += MSG_HEIGHT / 2;
-                thisMsg.position = position;
-                feedBack += MSG_HEIGHT / 2;
-            }
-            else{
-                var nest = 0;
-                var tempMsg = lastMsg;
-                while(tempMsg.from != thisMsg.from){
-                    nest += MSG_HEIGHT / 2;
-                    feedBack -= MSG_HEIGHT / 2;
-                    tempMsg = this.messages[tempMsg.id - 1];
-                }
-                position += MSG_HEIGHT + nest;
-                thisMsg.position = position;
-            }
-            // Change the scale of messages from main thread
-            for(var j = activeStartMsgId; j < i; j++){
-                this.messages[j].scale += 1;
-                if(this.messages[j].to == thisMsg.from)
-                    break;
-            }
             validMessageNum ++;
             this.validMessages.push(thisMsg);
+
+            // Decide the position
+            var feedBack = 0;
+            // After loop the peek of the stack is the last valid message in the call chain
+            while(peek(activeStack).to != thisMsg.from){
+                var top = activeStack.pop();
+                activeSet.delete(top);
+                feedBack += 1;
+            }
+            position += (feedBack + 1) * MSG_HEIGHT / 2;
+            thisMsg.position = position;
+            // Change the scale of messages in the call chain
+            activeStack.forEach(function(msg){
+                msg.scale += 1;
+            });
+            // Add the message into active set & stack
+            activeStack.push(thisMsg);
+            activeSet.add(thisMsg.to);
         }
-        else{ // not valid message
+
+        // Message come from non-active and non-main-thread objects
+        else{
             thisMsg.valid = false;
         }
     }
 
-    var lastValidMsg = null;
     var firstValidMsg = null;
     for(var i = this.messages.length - 1; i >= 0; i--){
         var thisMsg = this.messages[i];
@@ -166,4 +165,14 @@ MessageController.prototype.updateStatus = function(){
     this.lastValidMsg = lastValidMsg;
     this.validMessageNum = validMessageNum;
     return enabledMessages;
+}
+
+function updateScale(activeStack){
+    activeStack.forEach(function(msg){
+        msg.scale += 1;
+    });
+}
+
+function peek(activeStack){
+    return activeStack[activeStack.length - 1];
 }

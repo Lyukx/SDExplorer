@@ -75,6 +75,13 @@ function setSVG(){
     	                    viewBox_x = curPos_x - scale * (curPos_x - viewBox_x);
     	                    viewBox_y = Math.max(curPos_y - scale * (curPos_y - viewBox_y), 2 * sdv.getTopY());
     	                    svg.attr("viewBox", viewBox_x + " " + viewBox_y + " " + width / oldScale + " " + height / oldScale);
+
+                            // Keep the hint box a constant size
+                            var hintBox = d3.select(".hint-box");
+                            if(hintBox[0][0] != null){
+                                var attr = hintBox.attr("transform").split(" ");
+                                hintBox.attr("transform", attr[0] + " scale(" + (1 / oldScale) + ")");
+                            }
                             onDiagramMoved();
                         }
     	            }));

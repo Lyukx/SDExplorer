@@ -52,6 +52,8 @@ function initElement(objects, groups) {
         objects = group.objs;
         for(var i = 0; i < objects.length; i++) {
             var thisElement = total.get(objects[i]);
+            //console.log(thisElement);
+            //console.log(objects);
             thisElement.parent = group.id;
         }
     });
@@ -247,12 +249,14 @@ MessageController.prototype.updateMessageOnUnfold = function(total, displaySet){
 
 MessageController.prototype.updateStatus = function(){
     var activeSet = new Set();
-    var activeStartMsgId;
-    var position = 0;
+    var activeStack = [];
+    var position = MSG_HEIGHT$1 / 4;
     var validMessageNum = 0;
     var enabledMessages = [];
     var feedBack = 0;
     this.validMessages = [];
+
+    var lastValidMsg;
 
     for(var i = 0; i < this.messages.length; i++){
         var thisMsg = this.messages[i];
@@ -260,62 +264,59 @@ MessageController.prototype.updateStatus = function(){
         if(thisMsg.to == thisMsg.from || thisMsg.from == -1 || thisMsg.to == -1){
             thisMsg.valid = false;
         }
+
         // Message from main thread
         else if(this.mainThreads.has(thisMsg.from)){
+            position += (activeStack.length + 1) * MSG_HEIGHT$1 / 2;
+            thisMsg.position = position;
+            // Add the message into active stack
+            activeStack = [];
+            activeStack.push(thisMsg);
             activeSet.clear();
             activeSet.add(thisMsg.to);
             if(!thisMsg.valid)
                 enabledMessages.push(thisMsg);
             thisMsg.valid = true;
             thisMsg.scale = 1;
-            position += MSG_HEIGHT$1 + feedBack;
-            feedBack = 0;
-            thisMsg.position = position;
-            activeStartMsgId = thisMsg.id;
             validMessageNum ++;
             this.validMessages.push(thisMsg);
+            lastValidMsg = thisMsg;
         }
 
-        // Message from active class
+        // Active Stack is not empty and the message is from active object
         else if(activeSet.has(thisMsg.from)){
-            activeSet.add(thisMsg.to);
             if(!thisMsg.valid)
                 enabledMessages.push(thisMsg);
             thisMsg.valid = true;
             thisMsg.scale = 1;
-            // Decide the position
-            var lastMsg = this.messages[i - 1];
-            if(thisMsg.from == lastMsg.to){
-                position += MSG_HEIGHT$1 / 2;
-                thisMsg.position = position;
-                feedBack += MSG_HEIGHT$1 / 2;
-            }
-            else{
-                var nest = 0;
-                var tempMsg = lastMsg;
-                while(tempMsg.from != thisMsg.from){
-                    nest += MSG_HEIGHT$1 / 2;
-                    feedBack -= MSG_HEIGHT$1 / 2;
-                    tempMsg = this.messages[tempMsg.id - 1];
-                }
-                position += MSG_HEIGHT$1 + nest;
-                thisMsg.position = position;
-            }
-            // Change the scale of messages from main thread
-            for(var j = activeStartMsgId; j < i; j++){
-                this.messages[j].scale += 1;
-                if(this.messages[j].to == thisMsg.from)
-                    break;
-            }
             validMessageNum ++;
             this.validMessages.push(thisMsg);
+
+            // Decide the position
+            var feedBack = 0;
+            // After loop the peek of the stack is the last valid message in the call chain
+            while(peek(activeStack).to != thisMsg.from){
+                var top = activeStack.pop();
+                activeSet.delete(top);
+                feedBack += 1;
+            }
+            position += (feedBack + 1) * MSG_HEIGHT$1 / 2;
+            thisMsg.position = position;
+            // Change the scale of messages in the call chain
+            activeStack.forEach(function(msg){
+                msg.scale += 1;
+            });
+            // Add the message into active set & stack
+            activeStack.push(thisMsg);
+            activeSet.add(thisMsg.to);
         }
-        else{ // not valid message
+
+        // Message come from non-active and non-main-thread objects
+        else{
             thisMsg.valid = false;
         }
     }
 
-    var lastValidMsg = null;
     var firstValidMsg = null;
     for(var i = this.messages.length - 1; i >= 0; i--){
         var thisMsg = this.messages[i];
@@ -337,7 +338,12 @@ MessageController.prototype.updateStatus = function(){
     return enabledMessages;
 };
 
+function peek(activeStack){
+    return activeStack[activeStack.length - 1];
+}
+
 var ELEMENT_HEIGHT = 40;
+var ELEMENT_CH_WIDTH = 10;
 var ELEMENT_CH_HEIGHT = 4;
 var PADDING = 20;
 var PADDING_GROUP = 10;
@@ -345,6 +351,8 @@ var PADDING_GROUP = 10;
 var MSG_ACTIVE_WIDTH = 10;
 var MSG_HEIGHT = 80;
 var MSG_PADDING = MSG_HEIGHT / 8;
+
+var HINT_HEIGHT = 90;
 
 var ELEMENT_PADDING = ELEMENT_HEIGHT;
 
@@ -537,7 +545,7 @@ function drawMainThread(){
     mainThread.forEach(function(id){
         var mainThreadObj = total.get(id);
         var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
-        var y = firstValidMsg.position - 2 * MSG_PADDING;
+        var y = firstValidMsg.position;
         d3.select(".messages-layout").append("rect")
                 .attr("class", "mainThreadActiveBar")
                 .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h})
@@ -562,7 +570,7 @@ function updateMainThread(){
         }
         var mainThreadObj = total.get(id);
         var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
-        var y = firstValidMsg.position - 2 * MSG_PADDING;
+        var y = firstValidMsg.position;
         d3.select(".mainThreadActiveBar")
                 .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h})
                 .attr("transform", "translate(" + x + "," + y + ")");
@@ -683,10 +691,12 @@ function drawMessage(message) {
                     active = thisActive;
                     var curX = d3.mouse(this)[0];
                     var curY = d3.mouse(this)[1];
-                    console.log(curX, curY);
+                    d3.select(".hint-box").remove();
+                    addHint(message.from, message.to, message.message, curX, curY);
                 }
                 else{
                     active = undefined;
+                    d3.select(".hint-box").remove();
                 }
             }
             else{
@@ -694,9 +704,49 @@ function drawMessage(message) {
                 active = thisActive;
                 var curX = d3.mouse(this)[0];
                 var curY = d3.mouse(this)[1];
-                console.log(curX, curY);
+                addHint(message.from, message.to, message.message, curX, curY);
             }
         });
+}
+
+function addHint(from, to, msg, curX, curY){
+    var tempG = d3.select("svg")
+                    .append("g")
+                    .attr("class", "hint-box");
+
+    var fromT = total.get(from).name;
+    var toT = total.get(to).name;
+
+    var scale = 1;
+    var viewBox = d3.select("svg");
+    if(viewBox[0][0] != null){
+        viewBox = viewBox.attr("viewBox");
+        var windowX = window.innerWidth;
+        scale = viewBox.split(" ")[2] / windowX;
+    }
+    var width = (Math.max(fromT.length, toT.length, msg.length) + 8) * ELEMENT_CH_WIDTH + 2 * PADDING;
+
+    tempG.append("rect")
+        .attr({x: 0, y: 0, width: width, height: HINT_HEIGHT})
+        .style("fill", "#FEF8DE")
+        .style("stroke", "black");
+
+    tempG.append("text")
+        .text(function(d){ return "Caller: " + fromT; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.append("text")
+        .text(function(d){ return "Callee: " + toT; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 2 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.append("text")
+        .text(function(d){ return "Method: " + msg; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 * 5 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.attr("transform", "translate(" + curX + "," + curY + ") scale(" + scale + ")");
 }
 
 function allFolded(group) {
@@ -714,11 +764,12 @@ function drawElement(element) {
     var x = element.width / 2;
     // a fixed length
     var msgNum = (sizeSetted && diagramStartMsg + diagramSizeY < messages.length ? diagramSizeY : messageController.validMessageNum) + 1;
-    var y2 = msgNum * MSG_HEIGHT + ELEMENT_PADDING / 2 + ELEMENT_HEIGHT / 2;
+    var y1 = messages[diagramStartMsg].position - 80;
+    var y2 = y1 + msgNum * MSG_HEIGHT + ELEMENT_PADDING / 2 + ELEMENT_HEIGHT / 2;
     d3.select(".baseline-layout").append("line")
         .attr("class", "baseLine")
         .attr("x1", x)
-        .attr("y1", 0)
+        .attr("y1", y1)
         .attr("x2", x)
         .attr("y2", y2)
         .style("stroke", "black")
@@ -836,6 +887,11 @@ function updateMsgSVG(){
                 .transition()
                 .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h2})
                 .attr("transform", "translate(" + x2 + "," + y2 + ")");
+
+            d3.select(this).select(".message-click-active-block")
+                .transition()
+                .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
+                .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
         });
 
     var msgNum = (sizeSetted && diagramStartMsg + diagramSizeY < messages.length ? diagramSizeY : messageController.validMessageNum) + 1;
@@ -1035,6 +1091,13 @@ function setSVG(){
     	                    viewBox_x = curPos_x - scale * (curPos_x - viewBox_x);
     	                    viewBox_y = Math.max(curPos_y - scale * (curPos_y - viewBox_y), 2 * sdv.getTopY());
     	                    svg.attr("viewBox", viewBox_x + " " + viewBox_y + " " + width / oldScale + " " + height / oldScale);
+
+                            // Keep the hint box a constant size
+                            var hintBox = d3.select(".hint-box");
+                            if(hintBox[0][0] != null){
+                                var attr = hintBox.attr("transform").split(" ");
+                                hintBox.attr("transform", attr[0] + " scale(" + (1 / oldScale) + ")");
+                            }
                             onDiagramMoved();
                         }
     	            }));

@@ -8,7 +8,10 @@ var PADDING_GROUP = 10;
 
 var MSG_ACTIVE_WIDTH = 10;
 var MSG_HEIGHT = 80;
-var MSG_PADDING = MSG_HEIGHT / 8
+var MSG_PADDING = MSG_HEIGHT / 8;
+
+var HINT_WIDTH = 300;
+var HINT_HEIGHT = 90;
 
 var ELEMENT_PADDING = ELEMENT_HEIGHT;
 
@@ -201,7 +204,7 @@ function drawMainThread(){
     mainThread.forEach(function(id){
         var mainThreadObj = total.get(id);
         var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
-        var y = firstValidMsg.position - 2 * MSG_PADDING;
+        var y = firstValidMsg.position;
         d3.select(".messages-layout").append("rect")
                 .attr("class", "mainThreadActiveBar")
                 .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h})
@@ -226,7 +229,7 @@ function updateMainThread(){
         }
         var mainThreadObj = total.get(id);
         var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
-        var y = firstValidMsg.position - 2 * MSG_PADDING;
+        var y = firstValidMsg.position;
         d3.select(".mainThreadActiveBar")
                 .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h})
                 .attr("transform", "translate(" + x + "," + y + ")");
@@ -347,10 +350,12 @@ function drawMessage(message) {
                     active = thisActive;
                     var curX = d3.mouse(this)[0];
                     var curY = d3.mouse(this)[1];
-                    console.log(curX, curY);
+                    d3.select(".hint-box").remove();
+                    addHint(message.from, message.to, message.message, curX, curY);
                 }
                 else{
                     active = undefined;
+                    d3.select(".hint-box").remove();
                 }
             }
             else{
@@ -358,9 +363,49 @@ function drawMessage(message) {
                 active = thisActive;
                 var curX = d3.mouse(this)[0];
                 var curY = d3.mouse(this)[1];
-                console.log(curX, curY);
+                addHint(message.from, message.to, message.message, curX, curY);
             }
         });
+}
+
+function addHint(from, to, msg, curX, curY){
+    var tempG = d3.select("svg")
+                    .append("g")
+                    .attr("class", "hint-box");
+
+    var fromT = total.get(from).name;
+    var toT = total.get(to).name;
+
+    var scale = 1;
+    var viewBox = d3.select("svg");
+    if(viewBox[0][0] != null){
+        viewBox = viewBox.attr("viewBox")
+        var windowX = window.innerWidth;
+        scale = viewBox.split(" ")[2] / windowX;
+    }
+    var width = (Math.max(fromT.length, toT.length, msg.length) + 8) * ELEMENT_CH_WIDTH + 2 * PADDING;
+
+    tempG.append("rect")
+        .attr({x: 0, y: 0, width: width, height: HINT_HEIGHT})
+        .style("fill", "#FEF8DE")
+        .style("stroke", "black");
+
+    tempG.append("text")
+        .text(function(d){ return "Caller: " + fromT; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.append("text")
+        .text(function(d){ return "Callee: " + toT; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 2 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.append("text")
+        .text(function(d){ return "Method: " + msg; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 * 5 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.attr("transform", "translate(" + curX + "," + curY + ") scale(" + scale + ")")
 }
 
 function allFolded(group) {
@@ -378,11 +423,12 @@ function drawElement(element) {
     var x = element.width / 2;
     // a fixed length
     var msgNum = (sizeSetted && diagramStartMsg + diagramSizeY < messages.length ? diagramSizeY : messageController.validMessageNum) + 1;
-    var y2 = msgNum * MSG_HEIGHT + ELEMENT_PADDING / 2 + ELEMENT_HEIGHT / 2;
+    var y1 = messages[diagramStartMsg].position - 80;
+    var y2 = y1 + msgNum * MSG_HEIGHT + ELEMENT_PADDING / 2 + ELEMENT_HEIGHT / 2;
     d3.select(".baseline-layout").append("line")
         .attr("class", "baseLine")
         .attr("x1", x)
-        .attr("y1", 0)
+        .attr("y1", y1)
         .attr("x2", x)
         .attr("y2", y2)
         .style("stroke", "black")
@@ -499,7 +545,12 @@ function updateMsgSVG(){
             d3.select(this).select(".rightActiveBlock")
                 .transition()
                 .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h2})
-                .attr("transform", "translate(" + x2 + "," + y2 + ")")
+                .attr("transform", "translate(" + x2 + "," + y2 + ")");
+
+            d3.select(this).select(".message-click-active-block")
+                .transition()
+                .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
+                .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
         });
 
     var msgNum = (sizeSetted && diagramStartMsg + diagramSizeY < messages.length ? diagramSizeY : messageController.validMessageNum) + 1;

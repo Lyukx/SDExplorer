@@ -26,6 +26,8 @@ function initElement(objects, groups) {
         objects = group.objs;
         for(var i = 0; i < objects.length; i++) {
             var thisElement = total.get(objects[i]);
+            //console.log(thisElement);
+            //console.log(objects);
             thisElement.parent = group.id;
         }
     });
