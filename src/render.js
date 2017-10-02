@@ -63,6 +63,10 @@ export default function SDViewer(objects, groups, msgs){
     generateLayout();
 
     sizeSetted = false;
+
+    this.display = display;
+    this.messages = messages;
+    this.total = total;
 }
 
 SDViewer.prototype.setDiagramDisplaySize = function(x, y) {

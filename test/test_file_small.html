@@ -9,6 +9,7 @@
 var objects;
 var messages = [];
 var groups = [];
+var svg;
 d3.csv("object.csv", function(err, data){
     if(err){
         console.log(err);
@@ -33,7 +34,6 @@ d3.csv("object.csv", function(err, data){
                         group.objs.push(parseInt(obj));
                     });
                 });
-                console.log(data);
                 groups = data;
                 console.log("groups load over");
                 console.log("start read messages");
@@ -51,7 +51,7 @@ d3.csv("object.csv", function(err, data){
                         });
                         messages = data;
                         console.log("messages load over");
-                        var elements = new sd.SVG(objects, groups, messages);
+                        svg = new sd.SVG(objects, groups, messages);
                     }
                 });
             }

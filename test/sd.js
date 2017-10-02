@@ -404,6 +404,10 @@ function SDViewer(objects, groups, msgs){
     generateLayout();
 
     sizeSetted = false;
+
+    this.display = display;
+    this.messages = messages;
+    this.total = total;
 }
 
 SDViewer.prototype.setDiagramDisplaySize = function(x, y) {
@@ -1035,6 +1039,27 @@ function SVG(objects, groups, messages) {
     sdv.setDiagramDisplayHead(headX, headY);
     sdv.drawPart();
 }
+
+SVG.prototype.moveToObject = function(objId){
+    var thisObj = sdv.total.get(objId);
+    console.log(thisObj);
+    var newHeadX = sdv.display.indexOf(thisObj);
+    console.log("Valid: " + ( newHeadX != -1));
+    if(newHeadX != -1){
+        headX = newHeadX;
+        updateSvg(headX, headY);
+        var vbx = thisObj.x;
+        var attr = d3.select("svg")
+            .attr("viewBox")
+            .split(" ");
+        d3.select("svg")
+            .attr("viewBox", vbx + " " + attr[1] + " " + attr[2] + " " + attr[3]);
+    }
+};
+
+SVG.prototype.moveToMessage = function(x){
+    console.log(sdv.messages);
+};
 
 function onDiagramMoved() {
     if(sdv.getMiddleObjX() != -1){
