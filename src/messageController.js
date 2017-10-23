@@ -1,4 +1,5 @@
 import {Message} from "./message";
+import {LoopDetector} from "./loopDetector";
 
 var MSG_HEIGHT = 80;
 var MSG_PADDING = MSG_HEIGHT / 4;
@@ -74,6 +75,74 @@ MessageController.prototype.updateMessageOnUnfold = function(total, displaySet){
             }
         }
     });
+}
+
+MessageController.prototype.compressWithLoops = function(){
+    var loopDetector = new LoopDetector(this.validMessages);
+    console.log("Before compressed: " + this.validMessages.length);
+    console.log("After compressed: " + loopDetector.result[1].length);
+
+    return loopDetector.result;
+}
+
+MessageController.prototype.compressUpdateStatus = function(compressResult){
+    var activeSet = new Set();
+    var activeStack = [];
+    var position = MSG_HEIGHT / 4;
+    var feedBack = 0;
+    //this.validMessages = [];
+    this.validMessages.forEach(function(message){
+        message.valid = false;
+    });
+    this.validMessages = compressResult[1];
+    this.firstValidMsg = this.validMessages[0];
+    this.lastValidMsg = this.validMessages[this.validMessages.length - 1];
+    this.validMessageNum = this.validMessages.length;
+
+    for(var i = 0; i < this.validMessages.length; i++){
+        var thisMsg = this.validMessages[i];
+        // Message from main thread
+        if(this.mainThreads.has(thisMsg.from)){
+            position += (activeStack.length + 1) * MSG_HEIGHT / 2;
+            thisMsg.position = position;
+            // Add the message into active stack
+            activeStack = [];
+            activeStack.push(thisMsg);
+            activeSet.clear();
+            activeSet.add(thisMsg.to);
+            thisMsg.valid = true;
+            thisMsg.scale = 1;
+        }
+
+        // Active Stack is not empty and the message is from active object
+        else if(activeSet.has(thisMsg.from)){
+            thisMsg.valid = true;
+            thisMsg.scale = 1;
+            // Decide the position
+            var feedBack = 0;
+            // After loop the peek of the stack is the last valid message in the call chain
+            while(peek(activeStack).to != thisMsg.from){
+                var top = activeStack.pop();
+                activeSet.delete(top);
+                feedBack += 1;
+            }
+            position += (feedBack + 1) * MSG_HEIGHT / 2;
+            thisMsg.position = position;
+            // Change the scale of messages in the call chain
+            activeStack.forEach(function(msg){
+                msg.scale += 1;
+            });
+            // Add the message into active set & stack
+            activeStack.push(thisMsg);
+            activeSet.add(thisMsg.to);
+        }
+
+        // Message come from non-active and non-main-thread objects
+        else{
+            thisMsg.valid = false;
+        }
+    }
+    return;
 }
 
 MessageController.prototype.updateStatus = function(){

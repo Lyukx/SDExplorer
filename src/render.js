@@ -22,6 +22,7 @@ var messages = [];
 var origin = [];
 var mainThread; //TODO add multi-thread
 var messageController;
+var loops = [];
 
 // Set and control display window
 var diagramSizeX;
@@ -56,9 +57,12 @@ export default function SDViewer(objects, groups, msgs){
     var mc = new MessageController(msgs, mainThreadSet);
     mc.updateMessageInit(total, displaySet);
     mc.updateStatus();
+    var result = mc.compressWithLoops()
+    mc.compressUpdateStatus(result);
     messages = mc.validMessages;
     origin = mc.origin;
     messageController = mc;
+    loops = result[0];
 
     generateLayout();
 
@@ -170,6 +174,7 @@ SDViewer.prototype.drawPart = function() {
             break;
         drawMessage(messages[i]);
     }
+    drawLoops();
     updateTopY();
 }
 
@@ -189,11 +194,11 @@ function generateLayout() {
 
     d3.select("svg")
         .append("g")
-        .attr("class", "messages-layout");
+        .attr("class", "loop-layout");
 
     d3.select("svg")
         .append("g")
-        .attr("class", "loop-layout");
+        .attr("class", "messages-layout");
 
     d3.select("svg")
         .append("g")
@@ -249,6 +254,10 @@ function unfold(group){
     });
     messageController.updateMessageOnUnfold(total, displaySet);
     var enable = messageController.updateStatus();
+    var result = messageController.compressWithLoops();
+    messageController.compressUpdateStatus(result);
+    loops = result[0];
+    drawLoops();
     unfoldUpdateSVG(group, enable);
     updateMainThread();
 }
@@ -257,6 +266,10 @@ function fold(group){
     elementController.foldUpdateStatus(group.id);
     messageController.updateMessageOnFold(group);
     messageController.updateStatus();
+    var result = messageController.compressWithLoops();
+    messageController.compressUpdateStatus(result);
+    loops = result[0];
+    drawLoops();
     foldUpdateSVG(group);
     updateMainThread();
 }
@@ -498,6 +511,39 @@ function drawElement(element) {
     return tempG;
 }
 
+function drawLoops(){
+    // clear all loops
+    d3.selectAll(".loop").remove();
+    // draw new loops
+    var LOOP_PADDING = MSG_ACTIVE_WIDTH * 2;
+    loops.forEach(function(loop){
+        var left = -1;
+        var right = -1;
+        var x, y;
+        var height = loop.represent.length * MSG_HEIGHT;
+        for(var i = 0; i < loop.represent.length; i++){
+            var thisMsg = loop.represent[i];
+            var from = total.get(thisMsg.from);
+            var to = total.get(thisMsg.to);
+            var thisLeft = Math.min(from.x + from.width / 2 - LOOP_PADDING, to.x + to.width / 2 - LOOP_PADDING);
+            var thisRight = Math.max(from.x + from.width / 2 + LOOP_PADDING, to.x + to.width / 2 + LOOP_PADDING);
+            if(thisLeft < left || left == -1)
+                left = thisLeft;
+            if(thisRight > right || right == -1)
+                right = thisRight;
+            if(i == 0){
+                x = thisLeft;
+                y = thisMsg.position;
+            }
+        }
+        d3.select(".loop-layout").append("rect")
+            .attr({x: x, y: y, width: right - left, height: height})
+            .style("fill", "#FEF8DE")
+            .style("stroke", "black")
+            .attr("class", "loop");
+    });
+}
+
 function updateMsgSVG(){
     d3.selectAll(".message")
         .each(function(message){
@@ -618,7 +664,8 @@ function unfoldUpdateSVG(thisGroup, enable) {
 
     // If there are newly appear messages, draw them
     enable.forEach(function(message){
-        drawMessage(message);
+        if(message.valid)
+            drawMessage(message);
     });
 
     // Update messages

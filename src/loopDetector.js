@@ -1,97 +1,119 @@
 import {Loop} from "./loop";
 
-export function LoopDetector(){
-    this.loops = [];
+// represent: an array of messages
+// repeat: repeat times
+function LoopNode(represent, repeat){
+    this.represent = represent;
+    this.repeat = repeat;
+    this.children = [];
+    this.depth = 1;
 }
 
-LoopDetector.prototype.detect = function(messages){
-    // Test Code
-    var loopSet = [];
-    var stealthSet = new Set();
-
-    if(messages.length < 2)
-        return [new Loop(loopSet, stealthSet)];
-    if(messages[0].equals(messages[1]))
-        loopSet.push(0);
-    for(var i = 1; i < messages.length; i++){
-        if(messages[0].equals(messages[i]))
-            stealthSet.add(i);
+LoopNode.prototype.sameRepresent = function(another){
+    if(this.represent.length != another.represent.length){
+        return false;
     }
-    var loop = new Loop(loopSet, stealthSet);
-    var loops = [];
-    loops.push(loop);
+    for(var i = 0; i < this.represent.length; i++){
+        if(!this.represent[i].equals(another.represent[i])){
+            return false;
+        }
+    }
+    return true;
+}
 
-    // Tanikuchis' approach
-    /*
-    var loopSet = [];
-    var stealthSet = new Set();
-    var loops = [];
-    for(var k = 1; k < messages.length / 2; k++){
-        for(var j = 0; j < messages.length - k - 1; j++){
-            var flag = true;
-            for(var i = 0; i < k; i++){
-                console.log(messages[k+i+j]);
-                console.log(i,j,k);
-                if(!messages[i + j].equals(messages[k + i + j])){
-                    flag = false;
+function compareWindows(loopTreeList, start, windowSize){
+    for(var i = start; i < start + windowSize; i++){
+        if(!loopTreeList[i].sameRepresent(loopTreeList[i + windowSize])){
+            return false;
+        }
+    }
+    return true;
+}
+
+function mergeNodes(loopTreeList, start, windowSize, repeat){
+    var represent = [];
+    var children = [];
+    var maxDepth = 0;
+    for(var i = start; i < start + windowSize; i++){
+        represent = represent.concat(loopTreeList[i].represent);
+        children.push(loopTreeList[i]);
+        if(loopTreeList[i].depth > maxDepth)
+            maxDepth = loopTreeList[i].depth;
+    }
+    var merged = new LoopNode(represent, repeat);
+    merged.children = children;
+    merged.depth = maxDepth + 1;
+    return merged;
+}
+
+function compress(messages){
+    var loopTreeList = [];
+    for(var i = 0; i < messages.length; i++){
+        loopTreeList.push(new LoopNode([messages[i]], 1));
+    }
+    var windowSize = 1;
+    //var thread = loopTreeList.length / 2;
+    var thread = 100 > loopTreeList.length / 2 ? loopTreeList.length / 2 : 100;
+    while(windowSize <= thread){
+        for(i = 0; i <= loopTreeList.length - 2 * windowSize; i++){
+            // Find all continuous loop iterations
+            var repeatCount = 1;
+            while(compareWindows(loopTreeList, i, windowSize)){
+                // Remove items in right window
+                loopTreeList.splice(i + windowSize, windowSize);
+                repeatCount ++;
+                if(i > loopTreeList.length - 2 * windowSize)
                     break;
-                }
             }
-            if(flag){
-                if(!stealthSet.has(j)){ // a new detected loop
-                    if(loopSet.length != 0){
-                        var loop = new Loop(loopSet, stealthSet);
-                        loops.push(loop);
-                    }
-                    for(var i = j; i < j + k; i++)
-                        loopSet.push(i);
-                    for(var i = j + k; i < j + 2 * k; i++)
-                        stealthSet.add(i);
-                }
-                else{ // a new member for exist loop
-                    for(var i = j + k; i < j + 2 * k; i++)
-                        stealthSet.add(i);
-                }
-            }
-            else{
-                if(loopSet.length != 0){
-                    var loop = new Loop(loopSet, stealthSet);
-                    loops.push(loop);
-                }
+            // There are loops, merge items in the window together
+            if(repeatCount > 1){
+                var merged = mergeNodes(loopTreeList, i, windowSize, repeatCount);
+                loopTreeList.splice(i, windowSize, merged);
             }
         }
-    }*/
+        windowSize ++;
+    }
 
-    this.loops = loops;
+    return loopTreeList;
+}
+
+function getAllRepresentIds(represent){
+    var ids = [];
+    for(var i = 0; i < represent.length; i++){
+        ids.push(represent[i].id);
+    }
+    return ids;
+}
+
+function getAllLoops(loopTreeRoot){
+    // Apply a DFS on loop tree and find those repeat > 1 nodes
+    var loops = [];
+    if(loopTreeRoot.children.length == 0)
+        return loops;
+    var stack = [];
+    stack.push(loopTreeRoot);
+    while(stack.length != 0){
+        var node = stack.pop();
+        loops.push(node);
+        for(var i = 0; i < node.children.length; i++){
+            // Only access non-leef node
+            if(node.children[i].repeat > 1)
+                stack.push(node.children[i]);
+        }
+    }
     return loops;
 }
 
-LoopDetector.prototype.getAllStealth = function(){
-    var allStealthSet = new Set();
-    this.loops.forEach(function(loop){
-        concatSets(allStealthSet, loop.stealthSet);
-    });
-    return allStealthSet;
-}
+export function LoopDetector(messages){
+    var loopTreeList = compress(messages);
+    // Get all loops
+    var loops = [];
+    // Get compressed messages
+    var compressed = [];
+    for(var i = 0; i < loopTreeList.length; i++){
+        loops = loops.concat(getAllLoops(loopTreeList[i]));
+        compressed = compressed.concat(loopTreeList[i].represent);
+    }
 
-LoopDetector.prototype.getAllLoopStart = function(){
-    var allLoopStartSet = new Set();
-    this.loops.forEach(function(loop){
-        allLoopStartSet.add(loop.loopSet[0]);
-    });
-    return allLoopStartSet;
-}
-
-LoopDetector.prototype.getAllLoopEnd = function(){
-    var allLoopEndSet = new Set();
-    this.loops.forEach(function(loop){
-        allLoopEndSet.add(loop.loopSet[loop.loopSet.length - 1]);
-    });
-    return allLoopEndSet;
-}
-
-function concatSets(set1, set2){
-    set2.forEach(function(item){
-        set1.add(item);
-    });
+    this.result = [loops, compressed];
 }

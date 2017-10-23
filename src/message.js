@@ -11,5 +11,5 @@ export function Message(rawMessage){
 
 Message.prototype.equals = function(another){
     // position doesn't need to be same
-    return (this.from == another.from && this.to == another.to && this.message == another.message && this.callee == another.callee && this.scale == another.scale);
+    return (this.from == another.from && this.to == another.to && this.message == another.message);
 }

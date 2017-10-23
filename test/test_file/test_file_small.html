@@ -2,8 +2,8 @@
 <meta charset="utf-8">
 <body>
     <div id="drawArea"></div>
-<script src="d3.min.js"></script>
-<script src="sd.js"></script>
+<script src="../d3.min.js"></script>
+<script src="../sd.js"></script>
 
 <script>
 var objects;
@@ -37,16 +37,13 @@ d3.csv("object.csv", function(err, data){
                 groups = data;
                 console.log("groups load over");
                 console.log("start read messages");
-                d3.csv("message.csv", function(err, data){
+                d3.csv("message2000.csv", function(err, data){
                     if(err){
                         console.log(err);
                     }
                     else{
-                        var count = 0;
                         data.forEach(function(msg){
-                            count++;
-                            if(count % 1000 == 0)
-                                console.log(count + " messages handled");
+                            console.log("handling messages");
                             msg.from = parseInt(msg.from);
                             msg.to = parseInt(msg.to);
                             msg.caller = msg.caller == null ? null : msg.caller;

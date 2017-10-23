@@ -170,118 +170,8 @@ function Message(rawMessage){
 
 Message.prototype.equals = function(another){
     // position doesn't need to be same
-    return (this.from == another.from && this.to == another.to && this.message == another.message);
+    return (this.from == another.from && this.to == another.to && this.message == another.message && this.callee == another.callee && this.scale == another.scale);
 };
-
-// represent: an array of messages
-// repeat: repeat times
-function LoopNode(represent, repeat){
-    this.represent = represent;
-    this.repeat = repeat;
-    this.children = [];
-    this.depth = 1;
-}
-
-LoopNode.prototype.sameRepresent = function(another){
-    if(this.represent.length != another.represent.length){
-        return false;
-    }
-    for(var i = 0; i < this.represent.length; i++){
-        if(!this.represent[i].equals(another.represent[i])){
-            return false;
-        }
-    }
-    return true;
-};
-
-function compareWindows(loopTreeList, start, windowSize){
-    for(var i = start; i < start + windowSize; i++){
-        if(!loopTreeList[i].sameRepresent(loopTreeList[i + windowSize])){
-            return false;
-        }
-    }
-    return true;
-}
-
-function mergeNodes(loopTreeList, start, windowSize, repeat){
-    var represent = [];
-    var children = [];
-    var maxDepth = 0;
-    for(var i = start; i < start + windowSize; i++){
-        represent = represent.concat(loopTreeList[i].represent);
-        children.push(loopTreeList[i]);
-        if(loopTreeList[i].depth > maxDepth)
-            maxDepth = loopTreeList[i].depth;
-    }
-    var merged = new LoopNode(represent, repeat);
-    merged.children = children;
-    merged.depth = maxDepth + 1;
-    return merged;
-}
-
-function compress(messages){
-    var loopTreeList = [];
-    for(var i = 0; i < messages.length; i++){
-        loopTreeList.push(new LoopNode([messages[i]], 1));
-    }
-    var windowSize = 1;
-    //var thread = loopTreeList.length / 2;
-    var thread = 100 > loopTreeList.length / 2 ? loopTreeList.length / 2 : 100;
-    while(windowSize <= thread){
-        for(i = 0; i <= loopTreeList.length - 2 * windowSize; i++){
-            // Find all continuous loop iterations
-            var repeatCount = 1;
-            while(compareWindows(loopTreeList, i, windowSize)){
-                // Remove items in right window
-                loopTreeList.splice(i + windowSize, windowSize);
-                repeatCount ++;
-                if(i > loopTreeList.length - 2 * windowSize)
-                    break;
-            }
-            // There are loops, merge items in the window together
-            if(repeatCount > 1){
-                var merged = mergeNodes(loopTreeList, i, windowSize, repeatCount);
-                loopTreeList.splice(i, windowSize, merged);
-            }
-        }
-        windowSize ++;
-    }
-
-    return loopTreeList;
-}
-
-function getAllLoops(loopTreeRoot){
-    // Apply a DFS on loop tree and find those repeat > 1 nodes
-    var loops = [];
-    if(loopTreeRoot.children.length == 0)
-        return loops;
-    var stack = [];
-    stack.push(loopTreeRoot);
-    while(stack.length != 0){
-        var node = stack.pop();
-        loops.push(node);
-        for(var i = 0; i < node.children.length; i++){
-            // Only access non-leef node
-            if(node.children[i].repeat > 1)
-                stack.push(node.children[i]);
-        }
-    }
-    return loops;
-}
-
-function LoopDetector(messages){
-    var loopTreeList = compress(messages);
-    // Get all loops
-    var loops = [];
-    // Get compressed messages
-    var compressed = [];
-    for(var i = 0; i < loopTreeList.length; i++){
-        loops = loops.concat(getAllLoops(loopTreeList[i]));
-        compressed = compressed.concat(loopTreeList[i].represent);
-    }
-
-    this.result = [loops, compressed];
-}
 
 var MSG_HEIGHT$1 = 80;
 var origin$1 = [];
@@ -355,74 +245,6 @@ MessageController.prototype.updateMessageOnUnfold = function(total, displaySet){
             }
         }
     });
-};
-
-MessageController.prototype.compressWithLoops = function(){
-    var loopDetector = new LoopDetector(this.validMessages);
-    console.log("Before compressed: " + this.validMessages.length);
-    console.log("After compressed: " + loopDetector.result[1].length);
-
-    return loopDetector.result;
-};
-
-MessageController.prototype.compressUpdateStatus = function(compressResult){
-    var activeSet = new Set();
-    var activeStack = [];
-    var position = MSG_HEIGHT$1 / 4;
-    var feedBack = 0;
-    //this.validMessages = [];
-    this.validMessages.forEach(function(message){
-        message.valid = false;
-    });
-    this.validMessages = compressResult[1];
-    this.firstValidMsg = this.validMessages[0];
-    this.lastValidMsg = this.validMessages[this.validMessages.length - 1];
-    this.validMessageNum = this.validMessages.length;
-
-    for(var i = 0; i < this.validMessages.length; i++){
-        var thisMsg = this.validMessages[i];
-        // Message from main thread
-        if(this.mainThreads.has(thisMsg.from)){
-            position += (activeStack.length + 1) * MSG_HEIGHT$1 / 2;
-            thisMsg.position = position;
-            // Add the message into active stack
-            activeStack = [];
-            activeStack.push(thisMsg);
-            activeSet.clear();
-            activeSet.add(thisMsg.to);
-            thisMsg.valid = true;
-            thisMsg.scale = 1;
-        }
-
-        // Active Stack is not empty and the message is from active object
-        else if(activeSet.has(thisMsg.from)){
-            thisMsg.valid = true;
-            thisMsg.scale = 1;
-            // Decide the position
-            var feedBack = 0;
-            // After loop the peek of the stack is the last valid message in the call chain
-            while(peek(activeStack).to != thisMsg.from){
-                var top = activeStack.pop();
-                activeSet.delete(top);
-                feedBack += 1;
-            }
-            position += (feedBack + 1) * MSG_HEIGHT$1 / 2;
-            thisMsg.position = position;
-            // Change the scale of messages in the call chain
-            activeStack.forEach(function(msg){
-                msg.scale += 1;
-            });
-            // Add the message into active set & stack
-            activeStack.push(thisMsg);
-            activeSet.add(thisMsg.to);
-        }
-
-        // Message come from non-active and non-main-thread objects
-        else{
-            thisMsg.valid = false;
-        }
-    }
-    return;
 };
 
 MessageController.prototype.updateStatus = function(){
@@ -541,7 +363,6 @@ var messages = [];
 var origin = [];
 var mainThread; //TODO add multi-thread
 var messageController;
-var loops = [];
 
 // Set and control display window
 var diagramSizeX;
@@ -576,12 +397,9 @@ function SDViewer(objects, groups, msgs){
     var mc = new MessageController(msgs, mainThreadSet);
     mc.updateMessageInit(total, displaySet);
     mc.updateStatus();
-    var result = mc.compressWithLoops();
-    mc.compressUpdateStatus(result);
     messages = mc.validMessages;
     origin = mc.origin;
     messageController = mc;
-    loops = result[0];
 
     generateLayout();
 
@@ -693,7 +511,6 @@ SDViewer.prototype.drawPart = function() {
             break;
         drawMessage(messages[i]);
     }
-    drawLoops();
     updateTopY();
 };
 
@@ -713,11 +530,11 @@ function generateLayout() {
 
     d3.select("svg")
         .append("g")
-        .attr("class", "loop-layout");
+        .attr("class", "messages-layout");
 
     d3.select("svg")
         .append("g")
-        .attr("class", "messages-layout");
+        .attr("class", "loop-layout");
 
     d3.select("svg")
         .append("g")
@@ -773,10 +590,6 @@ function unfold(group){
     });
     messageController.updateMessageOnUnfold(total, displaySet);
     var enable = messageController.updateStatus();
-    var result = messageController.compressWithLoops();
-    messageController.compressUpdateStatus(result);
-    loops = result[0];
-    drawLoops();
     unfoldUpdateSVG(group, enable);
     updateMainThread();
 }
@@ -785,10 +598,6 @@ function fold(group){
     elementController.foldUpdateStatus(group.id);
     messageController.updateMessageOnFold(group);
     messageController.updateStatus();
-    var result = messageController.compressWithLoops();
-    messageController.compressUpdateStatus(result);
-    loops = result[0];
-    drawLoops();
     foldUpdateSVG(group);
     updateMainThread();
 }
@@ -1030,39 +839,6 @@ function drawElement(element) {
     return tempG;
 }
 
-function drawLoops(){
-    // clear all loops
-    d3.selectAll(".loop").remove();
-    // draw new loops
-    var LOOP_PADDING = MSG_ACTIVE_WIDTH * 2;
-    loops.forEach(function(loop){
-        var left = -1;
-        var right = -1;
-        var x, y;
-        var height = loop.represent.length * MSG_HEIGHT;
-        for(var i = 0; i < loop.represent.length; i++){
-            var thisMsg = loop.represent[i];
-            var from = total.get(thisMsg.from);
-            var to = total.get(thisMsg.to);
-            var thisLeft = Math.min(from.x + from.width / 2 - LOOP_PADDING, to.x + to.width / 2 - LOOP_PADDING);
-            var thisRight = Math.max(from.x + from.width / 2 + LOOP_PADDING, to.x + to.width / 2 + LOOP_PADDING);
-            if(thisLeft < left || left == -1)
-                left = thisLeft;
-            if(thisRight > right || right == -1)
-                right = thisRight;
-            if(i == 0){
-                x = thisLeft;
-                y = thisMsg.position;
-            }
-        }
-        d3.select(".loop-layout").append("rect")
-            .attr({x: x, y: y, width: right - left, height: height})
-            .style("fill", "#FEF8DE")
-            .style("stroke", "black")
-            .attr("class", "loop");
-    });
-}
-
 function updateMsgSVG(){
     d3.selectAll(".message")
         .each(function(message){
@@ -1183,8 +959,7 @@ function unfoldUpdateSVG(thisGroup, enable) {
 
     // If there are newly appear messages, draw them
     enable.forEach(function(message){
-        if(message.valid)
-            drawMessage(message);
+        drawMessage(message);
     });
 
     // Update messages
