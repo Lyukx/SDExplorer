@@ -5,43 +5,40 @@ var ELEMENT_CH_HEIGHT = 4;
 var PADDING = 20;
 var PADDING_GROUP = 10;
 
-var total = [];
+var elementMap = []; // [id => element]
 var display = [];
 
-function initElement(objects, groups) {
-    var total = new Map();
+function initElements(objects, groups) {
+    elementMap = new Map();
+    // Add objects
     objects.forEach(function(object) {
-        object.name = object.name + ":" + object.type;
         var e = new Element(object);
-        total.set(e.id, e);
+        elementMap.set(e.id, e);
     });
 
+    // Add group information
     groups.forEach(function(group) {
         var e = new Element(group);
         e.children = group.objs;
-        total.set(e.id, e);
-    });
+        elementMap.set(e.id, e);
 
-    groups.forEach(function(group) {
         objects = group.objs;
         for(var i = 0; i < objects.length; i++) {
-            var thisElement = total.get(objects[i]);
-            //console.log(thisElement);
-            //console.log(objects);
+            var thisElement = elementMap.get(objects[i]);
             thisElement.parent = group.id;
         }
     });
-
-    return total;
 }
 
 export default function ElementController(objects, groups){
-    total = initElement(objects, groups);;
-    total.forEach(function(element, key, map){
+    initElements(objects, groups);
+
+    elementMap.forEach(function(element, key, map){
         if(element.parent == -1)
             display.push(element);
     });
 
+    // Sort by such a rule: put a group at where 1st object in it should be
     display.sort(function(a, b){
         var ida = a.id;
         var idb = b.id;
@@ -50,26 +47,31 @@ export default function ElementController(objects, groups){
         return ida - idb;
     });
 
+    // Decide the position of elements
     var dist = PADDING;
     for(var i = 0; i < display.length; i++){
         display[i].x = dist;
         dist += (display[i].width + PADDING);
     }
+}
 
-    this.total = total;
-    this.display = display;
+ElementController.prototype.getElementMap = function(){
+    return elementMap;
+}
+
+ElementController.prototype.getDisplay = function(){
+    return display;
 }
 
 ElementController.prototype.unfoldUpdateStatus = function(groupId){
-//function unfoldUpdateStatus(groupId) {
-    var thisGroup = total.get(groupId);
+    var thisGroup = elementMap.get(groupId);
     if(!thisGroup.fold)
         return;
     var elementIds = thisGroup.children;
     var dist = PADDING_GROUP;
     var index = display.indexOf(thisGroup) + 1;
     for(var i = 0; i < elementIds.length; i++){
-        var thisElement = total.get(elementIds[i]);
+        var thisElement = elementMap.get(elementIds[i]);
         thisElement.x = dist + thisGroup.x;
         display.splice(index, 0, thisElement);
         index++;
@@ -90,7 +92,7 @@ ElementController.prototype.unfoldUpdateStatus = function(groupId){
     // If there are parent groups
     var tempGroup = thisGroup;
     while(tempGroup.parent != -1){
-        tempGroup = total.get(tempGroup.parent);
+        tempGroup = elementMap.get(tempGroup.parent);
         tempGroup.width += diff;
         tempGroup.height += (2 * PADDING_GROUP);
         tempGroup.y -= PADDING_GROUP;
@@ -99,18 +101,18 @@ ElementController.prototype.unfoldUpdateStatus = function(groupId){
 
 ElementController.prototype.foldUpdateStatus = function(groupId){
 //function foldUpdateStatus(groupId) {
-    var thisGroup = total.get(groupId);
+    var thisGroup = elementMap.get(groupId);
     if(thisGroup.fold)
         return;
     var elementIds = thisGroup.children;
     var index = 0;
     for(var i = 0; i < elementIds.length; i++){
-        var thisElement = total.get(elementIds[i]);
+        var thisElement = elementMap.get(elementIds[i]);
         index = display.indexOf(thisElement);
         display.splice(index, 1); // Remove elements in group from display
     }
 
-    var diff = thisGroup.width - (thisGroup.name.length * ELEMENT_CH_WIDTH + PADDING * 2);
+    var diff = thisGroup.width - (thisGroup.displayName.length * ELEMENT_CH_WIDTH + PADDING * 2);
     while(index < display.length){
         display[index].x -= diff;
         index++;
@@ -124,7 +126,7 @@ ElementController.prototype.foldUpdateStatus = function(groupId){
     // If there are parent groups
     var tempGroup = thisGroup;
     while(tempGroup.parent != -1){
-        tempGroup = total.get(tempGroup.parent);
+        tempGroup = elementMap.get(tempGroup.parent);
         tempGroup.width -= diff;
         tempGroup.height -= (2 * PADDING_GROUP);
         tempGroup.y += PADDING_GROUP;

@@ -1,2 +1,1 @@
-export {default as SDViewer} from "./src/render.js";
-export {default as SVG} from "./src/svgController.js"
+export {default as SDController} from "./src/SDController.js";
