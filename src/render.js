@@ -57,12 +57,12 @@ export default function SDViewer(objects, groups, msgs){
     var mc = new MessageController(msgs, mainThreadSet);
     mc.updateMessageInit(total, displaySet);
     mc.updateStatus();
-    var result = mc.compressWithLoops()
-    mc.compressUpdateStatus(result);
+    //var result = mc.compressWithLoops()
+    //mc.compressUpdateStatus(result);
     messages = mc.validMessages;
     origin = mc.origin;
     messageController = mc;
-    loops = result[0];
+    //loops = result[0];
 
     generateLayout();
 
@@ -174,7 +174,7 @@ SDViewer.prototype.drawPart = function() {
             break;
         drawMessage(messages[i]);
     }
-    drawLoops();
+    //drawLoops();
     updateTopY();
 }
 
@@ -254,10 +254,10 @@ function unfold(group){
     });
     messageController.updateMessageOnUnfold(total, displaySet);
     var enable = messageController.updateStatus();
-    var result = messageController.compressWithLoops();
-    messageController.compressUpdateStatus(result);
-    loops = result[0];
-    drawLoops();
+    //var result = messageController.compressWithLoops();
+    //messageController.compressUpdateStatus(result);
+    //loops = result[0];
+    //drawLoops();
     unfoldUpdateSVG(group, enable);
     updateMainThread();
 }
@@ -266,10 +266,10 @@ function fold(group){
     elementController.foldUpdateStatus(group.id);
     messageController.updateMessageOnFold(group);
     messageController.updateStatus();
-    var result = messageController.compressWithLoops();
-    messageController.compressUpdateStatus(result);
-    loops = result[0];
-    drawLoops();
+    //var result = messageController.compressWithLoops();
+    //messageController.compressUpdateStatus(result);
+    //loops = result[0];
+    //drawLoops();
     foldUpdateSVG(group);
     updateMainThread();
 }
