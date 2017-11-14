@@ -3,10 +3,12 @@ export function Message(rawMessage){
     this.to = rawMessage.to;
     this.message = rawMessage.message;
     this.callee = rawMessage.callee;
-    this.id = -1;
+    this.id = rawMessage.id;
     this.valid = false;
     this.scale = 1;
     this.position = 0;
+    this.fromOffset = 0;
+    this.toOffset = 0;
 }
 
 Message.prototype.equals = function(another){

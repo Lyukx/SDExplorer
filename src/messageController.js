@@ -1,195 +1,100 @@
 import {Message} from "./message";
-import {LoopDetector} from "./loopDetector";
 
 var MSG_HEIGHT = 80;
 var MSG_PADDING = MSG_HEIGHT / 4;
 
-var origin = [];
+var validMessages; // The valid messages (those be displayed)
+var originMessages; // Total messages (Saved in a map form: [id => message])
+var totalMessages; // Total messages (from / to may be changed by grouping objects)
 
-export default function MessageController(messages, mainThreads){
-    this.messages = [];
-    this.origin = [];
-    this.mainThreads = mainThreads;
+var mainThreadSet;
+
+export default function MessageController(messages, mainThreads, display, elementMap){
+    validMessages = [];
+    originMessages  = new Map();
     for(var i = 0; i < messages.length; i++){
-        var thisMsg = new Message(messages[i]);
-        thisMsg.id = i;
-        this.messages.push(thisMsg);
-        this.origin.push({from:thisMsg.from, to:thisMsg.to});
+        totalMessages.push(messages[i]);
+        originMessages.set(messages[i].id, messages[i]);
     }
 
-    origin = this.origin;
-
-    this.firstValidMsg = this.messages[0];
-    this.lastValidMsg = this.messages[this.messages.length - 1];
-    this.validMessages = this.messages;
-}
-
-MessageController.prototype.updateMessageInit = function(total, displaySet){
-    this.messages.forEach(function(message){
-        while(!displaySet.has(message.from)){
-            var parent = total.get(message.from).parent;
+    // Initial the messages with setting the from / to
+    var displaySet = new Set(display);
+    // if the message is from/to elements in a grouped group, change the from/to attribute
+    for(var i = 0; i < totalMessages.length; i++){
+        while(!displaySet.has(totalMessages[i].from)){
+            var parent = elementMap.get(originMessages.get(messages).from).parent;
             message.from = parent;
             if(parent == -1){
                 break;
             }
         }
-        while(!displaySet.has(message.to)){
-            var parent = total.get(message.to).parent;
+        while(!displaySet.has(totalMessages[i].to)){
+            var parent = elementMap.get(originMessages.get(messages).to).parent;
             message.to = parent;
             if(parent == -1){
                 break;
             }
         }
-    });
-}
-
-MessageController.prototype.updateMessageOnFold = function(group){
-    this.messages.forEach(function(message){
-        if(group.children.indexOf(message.from) != -1)
-            message.from = group.id;
-        if(group.children.indexOf(message.to) != -1)
-            message.to = group.id;
-    });
-}
-
-MessageController.prototype.updateMessageOnUnfold = function(total, displaySet){
-    this.messages.forEach(function(message){
-        if(!displaySet.has(message.from)){
-            message.from = origin[message.id].from;
-            while(!displaySet.has(message.from)){
-                var parent = total.get(message.from).parent;
-                message.from = parent;
-                if(parent == -1){
-                    break;
-                }
-            }
-        }
-        if(!displaySet.has(message.to)){
-            message.to = origin[message.id].to;
-            while(!displaySet.has(message.to)){
-                var parent = total.get(message.to).parent;
-                message.to = parent;
-                if(parent == -1){
-                    break;
-                }
-            }
-        }
-    });
-}
-
-MessageController.prototype.compressWithLoops = function(){
-    var loopDetector = new LoopDetector(this.validMessages);
-    console.log("Before compressed: " + this.validMessages.length);
-    console.log("After compressed: " + loopDetector.result[1].length);
-
-    return loopDetector.result;
-}
-
-MessageController.prototype.compressUpdateStatus = function(compressResult){
-    var activeSet = new Set();
-    var activeStack = [];
-    var position = MSG_HEIGHT / 4;
-    var feedBack = 0;
-    //this.validMessages = [];
-    this.validMessages.forEach(function(message){
-        message.valid = false;
-    });
-    this.validMessages = compressResult[1];
-    this.firstValidMsg = this.validMessages[0];
-    this.lastValidMsg = this.validMessages[this.validMessages.length - 1];
-    this.validMessageNum = this.validMessages.length;
-
-    for(var i = 0; i < this.validMessages.length; i++){
-        var thisMsg = this.validMessages[i];
-        // Message from main thread
-        if(this.mainThreads.has(thisMsg.from)){
-            position += (activeStack.length + 1) * MSG_HEIGHT / 2;
-            thisMsg.position = position;
-            // Add the message into active stack
-            activeStack = [];
-            activeStack.push(thisMsg);
-            activeSet.clear();
-            activeSet.add(thisMsg.to);
-            thisMsg.valid = true;
-            thisMsg.scale = 1;
-        }
-
-        // Active Stack is not empty and the message is from active object
-        else if(activeSet.has(thisMsg.from)){
-            thisMsg.valid = true;
-            thisMsg.scale = 1;
-            // Decide the position
-            var feedBack = 0;
-            // After loop the peek of the stack is the last valid message in the call chain
-            while(peek(activeStack).to != thisMsg.from){
-                var top = activeStack.pop();
-                activeSet.delete(top);
-                feedBack += 1;
-            }
-            position += (feedBack + 1) * MSG_HEIGHT / 2;
-            thisMsg.position = position;
-            // Change the scale of messages in the call chain
-            activeStack.forEach(function(msg){
-                msg.scale += 1;
-            });
-            // Add the message into active set & stack
-            activeStack.push(thisMsg);
-            activeSet.add(thisMsg.to);
-        }
-
-        // Message come from non-active and non-main-thread objects
-        else{
-            thisMsg.valid = false;
-        }
     }
-    return;
+
+    mainThreadSet = mainThreads;
 }
 
-MessageController.prototype.updateStatus = function(){
-    var activeSet = new Set();
+//Decide the validations/scales/positions/stackOffsets of messages
+function updateStatus(){
+    var activeSet = new Set(); // Speed up the has() check using a Set as the stack may be deep
     var activeStack = [];
+
     var position = MSG_HEIGHT / 4;
-    var validMessageNum = 0;
-    var enabledMessages = [];
-    var feedBack = 0;
-    this.validMessages = [];
+    var feedBack = 0; // A
 
-    var lastValidMsg;
+    var enabledMessages = []; // After unfold operation there might be newly enabled messages
+    validMessages = [];
 
-    for(var i = 0; i < this.messages.length; i++){
-        var thisMsg = this.messages[i];
+    var offsetMap = createOffset();
+
+    for(var i = 0; i < totalMessages.length; i++){
+        var thisMsg = totalMessages[i];
         // Invalid message
         if(thisMsg.to == thisMsg.from || thisMsg.from == -1 || thisMsg.to == -1){
             thisMsg.valid = false;
         }
 
         // Message from main thread
-        else if(this.mainThreads.has(thisMsg.from)){
+        else if(mainThreadSet.has(thisMsg.from)){
             position += (activeStack.length + 1) * MSG_HEIGHT / 2;
             thisMsg.position = position;
-            // Add the message into active stack
+            // clear the call stack
             activeStack = [];
-            activeStack.push(thisMsg);
             activeSet.clear();
+            offsetMap = createOffset();
+            // Add message into active stack
             activeSet.add(thisMsg.to);
-            if(!thisMsg.valid)
+            activeStack.push(thisMsg);
+            if(offsetMap.has(thisMsg.to)){
+                thisMsg.toOffset = offsetMap.get(thisMsg.to) + 1;
+                offsetMap.set(thisMsg.to, thisMsg.toOffset);
+            }
+            else{
+                offsetMap.set(thisMsg.to, 0);
+            }
+            //Check enabled
+            if(!thisMsg.valid){
                 enabledMessages.push(thisMsg);
+            }
             thisMsg.valid = true;
             thisMsg.scale = 1;
-            validMessageNum ++;
-            this.validMessages.push(thisMsg);
-            lastValidMsg = thisMsg;
+            validMessages.push(thisMsg);
         }
 
-        // Active Stack is not empty and the message is from active object
+        // Message from active block
         else if(activeSet.has(thisMsg.from)){
-            if(!thisMsg.valid)
+            if(!thisMsg.valid){
                 enabledMessages.push(thisMsg);
+            }
             thisMsg.valid = true;
             thisMsg.scale = 1;
-            validMessageNum ++;
-            this.validMessages.push(thisMsg);
-
+            validMessages.push(thisMsg);
             // Decide the position
             var feedBack = 0;
             // After loop the peek of the stack is the last valid message in the call chain
@@ -208,40 +113,13 @@ MessageController.prototype.updateStatus = function(){
             activeStack.push(thisMsg);
             activeSet.add(thisMsg.to);
         }
-
-        // Message come from non-active and non-main-thread objects
-        else{
-            thisMsg.valid = false;
-        }
     }
-
-    var firstValidMsg = null;
-    for(var i = this.messages.length - 1; i >= 0; i--){
-        var thisMsg = this.messages[i];
-        if(thisMsg.valid){
-            lastValidMsg = thisMsg;
-            break;
-        }
-    }
-    for(var i = 0; i < this.messages.length; i++){
-        var thisMsg = this.messages[i];
-        if(thisMsg.valid){
-            firstValidMsg = thisMsg;
-            break;
-        }
-    }
-    this.firstValidMsg = firstValidMsg;
-    this.lastValidMsg = lastValidMsg;
-    this.validMessageNum = validMessageNum;
-    return enabledMessages;
 }
 
-function updateScale(activeStack){
-    activeStack.forEach(function(msg){
-        msg.scale += 1;
-    });
-}
-
-function peek(activeStack){
-    return activeStack[activeStack.length - 1];
+function createOffset(){
+    var offSetMap = new Map();
+    for (let mainThread of mainThreadSet){
+        offsetMap.set(mainThread, 0);
+    }
+    return offSetMap;
 }

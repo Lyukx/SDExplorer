@@ -34,6 +34,7 @@ function allFolded(group) {
     return true;
 }
 
+// Use a DFS to visit the grouping tree, and fold the group as well as its unfolded children groups
 function foldAll(group){
     var stack = [];
     stack.push(group);
@@ -58,7 +59,6 @@ function foldAll(group){
         }
     }
 }
-
 
 /********************************************************************************************************************
 Rest part is the 'render' part, which contains functions to draw / modify elements on the SVG.
