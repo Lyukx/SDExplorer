@@ -100,7 +100,6 @@ ElementController.prototype.unfoldUpdateStatus = function(groupId){
 }
 
 ElementController.prototype.foldUpdateStatus = function(groupId){
-//function foldUpdateStatus(groupId) {
     var thisGroup = elementMap.get(groupId);
     if(thisGroup.fold)
         return;
