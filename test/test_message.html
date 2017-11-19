@@ -13,7 +13,8 @@ var objects = [{id: 0, name: "bfs", type: "BFS", invisible: false},
                 {id: 4, name: "adjList", type: "List", invisible: false},
                 {id: 5, name: "adj", type: "Node", invisible: false}];
 
-var groups = [];
+var groups = [{id: 6, objs: [0, 1], name:"group1"},
+                {id: 7, objs: [4, 6], name:"group2"}];
 
 var messages = [{id: 0, from: 0, to: 1, caller: null, message:"new", isNew: false},
                 {id: 1, from: 1, to: 2, caller: null, message:"setLevel(0)", isNew: false},

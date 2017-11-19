@@ -3,16 +3,22 @@ import {default as MessageController} from "./messageController"
 
 var elementController;
 var messageController;
+
+var mainThread;
+
 export default function SDController(objects, groups, messages){
     elementController = new ElementController(objects, groups);
 
     var elementMap = elementController.getElementMap();
+    // TODO add multi-thread
     var mainThreadSet = new Set([0]);
     var temp = elementMap.get(0);
     while(temp.parent != -1){
         mainThreadSet.add(temp.parent);
         temp = elementMap.get(temp.parent);
     }
+    mainThread = [0];
+
     messageController = new MessageController(messages, mainThreadSet, elementController.getDisplaySet(), elementMap);
 }
 
@@ -24,6 +30,9 @@ SDController.prototype.draw = function() {
     for(var i = 0; i < display.length; i++){
         drawElement(display[i]);
     }
+
+    // draw the main threads
+    drawMainThread();
 
     // draw the messages
     var validMessages = messageController.getValidMessages();
@@ -100,6 +109,7 @@ SDController.prototype.clearAll = function() {
     d3.select(".objects-layout").remove();
     d3.select(".loop-layout").remove();
     d3.select(".loop-layout").remove();
+    d3.select(".mainthread-layout").remove();
 
     generateLayout();
 }
@@ -152,6 +162,10 @@ function generateLayout() {
 
     d3.select("svg")
         .append("g")
+        .attr("class", "mainthread-layout");
+
+    d3.select("svg")
+        .append("g")
         .attr("class", "messages-layout");
 
     d3.select("svg")
@@ -166,7 +180,7 @@ function drawElement(element){
     var x = element.width / 2;
     var validMessages = messageController.getValidMessages();
     var y1 = 0;
-    var y2 = validMessages[validMessages.length - 1].position + 80;
+    var y2 = validMessages.length * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
     d3.select(".baseline-layout").append("line")
         .attr("class", "baseLine")
         .attr("x1", x)
@@ -387,7 +401,6 @@ function drawMessage(message){
 
     // right active bar
     var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2 + message.toOffset * MSG_ACTIVE_WIDTH;
-    // console.log("message: " + message.message + ", " + message.offset);
     var y2 = y1 + MSG_PADDING;
     var h2 = h1 - 2 * MSG_PADDING;
 
@@ -458,12 +471,12 @@ function updateMessages(enabled){
             var to = elementMap.get(message.to);
 
             // left active bar
-            var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2;
+            var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2 + message.fromOffset * MSG_ACTIVE_WIDTH;
             var y1 = message.position + MSG_PADDING;
             var h1 = message.scale * MSG_HEIGHT - 2 * MSG_PADDING;
 
             // right active bar
-            var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2;
+            var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2 + message.toOffset * MSG_ACTIVE_WIDTH;
             var y2 = y1 + MSG_PADDING;
             var h2 = h1 - 2 * MSG_PADDING;
 
@@ -505,6 +518,13 @@ function updateMessages(enabled){
                 .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
                 .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
         });
+
+    var validMessages = messageController.getValidMessages();
+    var y2 = validMessages.length * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
+    d3.selectAll(".baseLine")
+        .attr("y2", y2);
+
+    updateMainThread();
 }
 
 function updateMessagesWithoutAnimation(enabled){
@@ -525,12 +545,12 @@ function updateMessagesWithoutAnimation(enabled){
             var to = elementMap.get(message.to);
 
             // left active bar
-            var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2;
+            var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2 + message.fromOffset * MSG_ACTIVE_WIDTH;
             var y1 = message.position + MSG_PADDING;
             var h1 = message.scale * MSG_HEIGHT - 2 * MSG_PADDING;
 
             // right active bar
-            var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2;
+            var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2 + message.toOffset * MSG_ACTIVE_WIDTH;
             var y2 = y1 + MSG_PADDING;
             var h2 = h1 - 2 * MSG_PADDING;
 
@@ -566,4 +586,36 @@ function updateMessagesWithoutAnimation(enabled){
                 .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
                 .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
         });
+    var validMessages = messageController.getValidMessages();
+    var y2 = validMessages.length * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT;
+    d3.selectAll(".baseLine")
+        .attr("y2", y2);
+
+    updateMainThread();
+}
+
+function drawMainThread() {
+    var elementMap = elementController.getElementMap();
+    var displaySet = elementController.getDisplaySet();
+    for(let id of mainThread){
+        var mainThreadObj = elementMap.get(id);
+        while(!displaySet.has(mainThreadObj.id) && mainThreadObj.parent != -1){
+            mainThreadObj = elementMap.get(mainThreadObj.parent);
+        }
+        var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
+        var y = MSG_HEIGHT * 0.75;
+        var validNum = messageController.getValidMessages().length;
+        var h = validNum * MSG_HEIGHT;
+        d3.select(".mainthread-layout").append("rect")
+                .attr("class", "mainThreadActiveBar")
+                .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h})
+                .attr("transform", "translate(" + x + "," + y + ")")
+                .style("stroke", "black")
+                .style("fill", "#CCC");
+    }
+}
+
+function updateMainThread(){
+    d3.selectAll(".mainThreadActiveBar").remove();
+    drawMainThread();
 }
