@@ -10,7 +10,7 @@ var svg = d3.select("#drawArea")
                 .attr("width", width)
                 .attr("height", height)
                 .call(d3.behavior.zoom()
-            	.scaleExtent([0.1, 10])
+            	.scaleExtent([1, 10])
             	.on("zoom", function () {
 	                if (oldScale !== d3.event.scale) {
 	                    var scale = oldScale / d3.event.scale;

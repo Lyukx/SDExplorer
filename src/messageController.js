@@ -41,10 +41,8 @@ export default function MessageController(messages, mainThreads, displaySet, ele
 
     mainThreadSet = mainThreads;
     updateStatus();
-}
 
-MessageController.prototype.getValidMessages = function(){
-    return validMessages;
+    this.validMessages = validMessages;
 }
 
 MessageController.prototype.foldUpdateStatus = function(group){

@@ -56,18 +56,10 @@ export default function ElementController(objects, groups){
     }
 
     updateDisplaySet();
-}
 
-ElementController.prototype.getElementMap = function(){
-    return elementMap;
-}
-
-ElementController.prototype.getDisplay = function(){
-    return display;
-}
-
-ElementController.prototype.getDisplaySet = function(){
-    return displaySet;
+    this.display = display;
+    this.elementMap = elementMap;
+    this.displaySet = displaySet;
 }
 
 ElementController.prototype.getGroupFoldInfo = function(){

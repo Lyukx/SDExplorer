@@ -6,10 +6,18 @@ var messageController;
 
 var mainThread;
 
+var display;
+var elementMap;
+var displaySet;
+
+var validMessages;
+
 export default function SDController(objects, groups, messages){
     elementController = new ElementController(objects, groups);
+    elementMap = elementController.elementMap;
+    display = elementController.display;
+    displaySet = elementController.displaySet;
 
-    var elementMap = elementController.getElementMap();
     // TODO add multi-thread
     var mainThreadSet = new Set([0]);
     var temp = elementMap.get(0);
@@ -19,14 +27,16 @@ export default function SDController(objects, groups, messages){
     }
     mainThread = [0];
 
-    messageController = new MessageController(messages, mainThreadSet, elementController.getDisplaySet(), elementMap);
+    messageController = new MessageController(messages, mainThreadSet, displaySet, elementMap);
+    validMessages = messageController.validMessages;
+
+    generateLayout();
 }
 
 SDController.prototype.draw = function() {
     generateLayout();
 
     // draw the elements
-    var display = elementController.getDisplay();
     for(var i = 0; i < display.length; i++){
         drawElement(display[i]);
     }
@@ -35,31 +45,42 @@ SDController.prototype.draw = function() {
     drawMainThread();
 
     // draw the messages
-    var validMessages = messageController.getValidMessages();
     for(let message of validMessages){
         drawMessage(message);
     }
+}
+
+SDController.prototype.getMessages = function() {
+    return validMessages;
+}
+
+SDController.prototype.getElements = function() {
+    return display;
 }
 
 function unfold(group){
     elementController.unfoldUpdateStatus(group.id);
     unfoldUpdateElements(group, elementController);
 
-    var enabled = messageController.unfoldUpdateStatus(elementController.getDisplaySet(), elementController.getElementMap());
+    var enabled = messageController.unfoldUpdateStatus(displaySet, elementMap);
     updateMessages(enabled);
+
+    updateTopY();
 }
 
 function fold(group){
     elementController.foldUpdateStatus(group.id);
     foldUpdateElements(group, elementController);
 
-    messageController.unfoldUpdateStatus(elementController.getDisplaySet(), elementController.getElementMap());
+    messageController.unfoldUpdateStatus(displaySet, elementMap);
     updateMessages([]); // When fold objects, no new message will appear
+
+    updateTopY();
 }
 
 function allFolded(group) {
     for(var i = 0; i < group.children.length; i++){
-        var e = elementController.getElementMap().get(group.children[i]);
+        var e = elementMap.get(group.children[i]);
         if(e.isGroup() && !e.fold)
             return false;
     }
@@ -78,7 +99,7 @@ function foldAll(group){
         }
         else{
             for(var i  = 0; i < tempGroup.children.length; i++){
-                var t = elementController.getElementMap().get(tempGroup.children[i]);
+                var t = elementMap.get(tempGroup.children[i]);
                 if(t.isGroup()){
                     if(allFolded(t)){
                         fold(t);
@@ -96,12 +117,106 @@ function foldAll(group){
 This part is "Advanced ussage" of this module.
 They are used in SDViewer module to controll the display
 ****************************************************************************/
-SDController.prototype.getMessages = function() {
-    return messageController.getValidMessages();
+// ---------- Sized window mode --------
+// Only part of elements / messages will be drawn in such a window view
+var diagramSizeX;
+var diagramSizeY;
+var diagramStartEle;
+var diagramStartMsg;
+var sizeSetted = false; // this is the switch of sized window mode
+
+SDController.prototype.setDiagramSize = function(x, y) {
+    diagramSizeX = x;
+    diagramSizeY = y;
+    sizeSetted = true;
+    this.setDiagramDisplayHead(0, 0);
 }
 
-SDController.prototype.getElements = function() {
-    return elementController.getDisplay();
+SDController.prototype.setDiagramDisplayHead = function(x, y) {
+    diagramStartEle = x;
+    diagramStartMsg = y;
+}
+
+SDController.prototype.getMiddleElementIndex = function() {
+    return diagramStartEle + (diagramSizeX / 2);
+}
+
+SDController.prototype.getMiddleElementX = function() {
+    var index = this.getMiddleElementIndex();
+    if(index < display.length){
+        return display[index].x;
+    }
+    else{
+        // Returns -1 means rightest part of the sequence diagram is displayed
+        return -1;
+    }
+}
+
+SDController.prototype.getHeadElementX = function() {
+    return display[diagramStartEle].x;
+}
+
+SDController.prototype.getMiddleMessageIndex = function() {
+    return diagramStartMsg + (diagramSizeY / 2);
+}
+
+SDController.prototype.getMiddleMessageY = function() {
+    var index = this.getMiddleMessageIndex();
+    if (index < validMessages.length){
+        return validMessages[index].position;
+    }
+    else {
+        // Return -1 means the most bottom part of the sequence diagram is displayed
+        return -1;
+    }
+}
+
+SDController.prototype.getHeadMessageY = function() {
+    return validMessages[diagramStartMsg].position;
+}
+
+function updateTopY() {
+    var top = 0;
+    for(var i = diagramStartEle; i < diagramStartEle + diagramSizeX; i++){
+        if(i >= display.length)
+            break;
+        top = Math.min(display[i].y, top);
+    }
+
+    var oldVBY = parseInt(d3.select(".objects-layout").attr("transform").split(/,|\)/)[1]);
+    if(SDController.prototype.top == undefined){
+        d3.select(".objects-layout")
+            .attr("transform", "translate(0," + (oldVBY - top)  + ")");
+        SDController.prototype.top = top;
+    }
+    else if(SDController.prototype.top != top){
+        d3.select(".objects-layout")
+            .attr("transform", "translate(0," + (oldVBY + SDController.prototype.top - top)  + ")");
+        SDController.prototype.top = top;
+    }
+}
+
+SDController.prototype.drawWindow = function() {
+    // draw the elements
+    for(var i = diagramStartEle; i < diagramStartEle + diagramSizeX; i++){
+        if(i >= display.length){
+            break;
+        }
+        drawElement(display[i]);
+    }
+
+    updateTopY();
+
+    // draw the main threads
+    drawMainThread();
+
+    // draw the messages
+    for(var i = diagramStartMsg; i < diagramSizeY; i++){
+        if(i >= validMessages.length){
+            break;
+        }
+        drawMessage(validMessages[i]);
+    }
 }
 
 SDController.prototype.clearAll = function() {
@@ -110,6 +225,7 @@ SDController.prototype.clearAll = function() {
     d3.select(".loop-layout").remove();
     d3.select(".loop-layout").remove();
     d3.select(".mainthread-layout").remove();
+    d3.select(".baseline-layout").remove();
 
     generateLayout();
 }
@@ -120,12 +236,12 @@ SDController.prototype.getFoldInfo = function() {
 }
 
 SDController.prototype.updateWithoutAnimation = function(unfoldSet) {
-    for(let element of elementController.getDisplay()){
+    for(let element of display){
         if(unfoldSet.has(element.id)){
             elementController.unfoldUpdateStatus(group.id);
             unfoldUpdateElementsWithoutAnimation(group, elementController);
 
-            var enabled = messageController.unfoldUpdateStatus(elementController.getDisplaySet(), elementController.getElementMap());
+            var enabled = messageController.unfoldUpdateStatus(displaySet, elementMap);
             updateMessagesWithoutAnimation(enabled);
         }
     }
@@ -178,9 +294,9 @@ function drawElement(element){
     var tempG = d3.select(".objects-layout").append("g");
     // Draw a lifeline
     var x = element.width / 2;
-    var validMessages = messageController.getValidMessages();
+    var msgNum = sizeSetted && diagramStartMsg + diagramSizeY < validMessages.length ? diagramSizeY : validMessages.length;
     var y1 = 0;
-    var y2 = validMessages.length * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
+    var y2 = msgNum * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
     d3.select(".baseline-layout").append("line")
         .attr("class", "baseLine")
         .attr("x1", x)
@@ -269,11 +385,10 @@ function unfoldUpdateElements(group, elementController){
           }
     });
 
-    elementController.getDisplay().forEach(function(element){
+    display.forEach(function(element){
         ELEMENT_PADDING = Math.max(ELEMENT_PADDING, element.height);
     });
 
-    var elementMap = elementController.getElementMap();
     for(var i = 0; i < group.children.length; i++){
         var elementId = group.children[i];
         var thisElement = elementMap.get(elementId);
@@ -335,7 +450,7 @@ function foldUpdateElements(group, elementController) {
         });
 
     ELEMENT_PADDING = ELEMENT_HEIGHT;
-    elementController.getDisplay().forEach(function(element){
+    display.forEach(function(element){
         ELEMENT_PADDING = Math.max(ELEMENT_PADDING, element.height);
     });
 }
@@ -372,11 +487,10 @@ function unfoldUpdateElementsWithoutAnimation(group, elementController){
           }
     });
 
-    elementController.getDisplay().forEach(function(element){
+    display.forEach(function(element){
         ELEMENT_PADDING = Math.max(ELEMENT_PADDING, element.height);
     });
 
-    var elementMap = elementController.getElementMap();
     for(var i = 0; i < group.children.length; i++){
         var elementId = group.children[i];
         var thisElement = elementMap.get(elementId);
@@ -390,8 +504,6 @@ function unfoldUpdateElementsWithoutAnimation(group, elementController){
 }
 
 function drawMessage(message){
-    var elementMap = elementController.getElementMap();
-
     var from = elementMap.get(message.from);
     var to = elementMap.get(message.to);
     // left active bar
@@ -403,6 +515,19 @@ function drawMessage(message){
     var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2 + message.toOffset * MSG_ACTIVE_WIDTH;
     var y2 = y1 + MSG_PADDING;
     var h2 = h1 - 2 * MSG_PADDING;
+
+    // in sized-window mode, avoid drawing too long lines could improve performance
+    if(sizeSetted){
+        var xMin = diagramStartEle > 0 ? display[diagramStartEle - 1].x : display[0].x;
+        var last = diagramStartEle + diagramSizeX;
+        if(last >= display.length)
+            last = display.length - 1;
+        var xMax = display[last].x;
+        if(x1 < xMin)
+            x1 = xMin;
+        if(x2 > xMax)
+            x2 = xMax;
+    }
 
     var leftToRight = (elementMap.get(message.from).x < elementMap.get(message.to).x);
 
@@ -460,7 +585,6 @@ function updateMessages(enabled){
             drawMessage(message);
     }
 
-    var elementMap = elementController.getElementMap();
     d3.selectAll(".message")
         .each(function(message){
             if(!message.valid){
@@ -519,8 +643,8 @@ function updateMessages(enabled){
                 .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
         });
 
-    var validMessages = messageController.getValidMessages();
-    var y2 = validMessages.length * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
+    var msgNum = sizeSetted && diagramStartMsg + diagramSizeY < validMessages.length ? diagramSizeY : validMessages.length;
+    var y2 = msgNum * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
     d3.selectAll(".baseLine")
         .attr("y2", y2);
 
@@ -534,7 +658,6 @@ function updateMessagesWithoutAnimation(enabled){
             drawMessage(message);
     }
 
-    var elementMap = elementController.getElementMap();
     d3.selectAll(".message")
         .each(function(message){
             if(!message.valid){
@@ -586,8 +709,8 @@ function updateMessagesWithoutAnimation(enabled){
                 .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
                 .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
         });
-    var validMessages = messageController.getValidMessages();
-    var y2 = validMessages.length * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT;
+    var msgNum = sizeSetted && diagramStartMsg + diagramSizeY < validMessages.length ? diagramSizeY : validMessages.length;
+    var y2 = msgNum * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT;
     d3.selectAll(".baseLine")
         .attr("y2", y2);
 
@@ -595,8 +718,6 @@ function updateMessagesWithoutAnimation(enabled){
 }
 
 function drawMainThread() {
-    var elementMap = elementController.getElementMap();
-    var displaySet = elementController.getDisplaySet();
     for(let id of mainThread){
         var mainThreadObj = elementMap.get(id);
         while(!displaySet.has(mainThreadObj.id) && mainThreadObj.parent != -1){
@@ -604,7 +725,7 @@ function drawMainThread() {
         }
         var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
         var y = MSG_HEIGHT * 0.75;
-        var validNum = messageController.getValidMessages().length;
+        var validNum = validMessages.length;
         var h = validNum * MSG_HEIGHT;
         d3.select(".mainthread-layout").append("rect")
                 .attr("class", "mainThreadActiveBar")
