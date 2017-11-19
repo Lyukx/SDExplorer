@@ -4,7 +4,7 @@
     <div id="drawArea"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
 <script src="sd.js"></script>
-
+<script src="setupsvg.js"></script>
 <script>
 var objects = [{id: 0, name: "bfs", type: "BFS", invisible: false},
                 {id: 1, name: "queue", type: "FIFO", invisible: false},
@@ -16,19 +16,19 @@ var objects = [{id: 0, name: "bfs", type: "BFS", invisible: false},
 var groups = [{id: 6, objs: [1, 2], name:"group1"},
                 {id: 7, objs: [4, 6], name:"group2"}];
 
-var messages = [{from: 0, to: 1, caller: null, message:"new", isNew: false},
-                {from: 0, to: 1, caller: null, message:"setLevel(0)", isNew: false},
-                {from: 1, to: 2, caller: null, message:"insert(someNode)", isNew: false},
-                {from: 0, to: 1, caller: "node", message: "remove()", isNew: false},
-                {from: 1, to: 2, caller: "level", message: "getLevel()", isNew: false},
-                {from: 2, to: 3, caller: "adjList", message: "getAdjacentNodes()", isNew: false},
-                {from: 1, to: 3, caller: "adj", message: "get(i)", isNew: false},
-                {from: 0, to: 1, caller: "nodeLevel", message: "getLevel()", isNew: false},
-                {from: 1, to: 2, caller: null, message:"setLevel(level+1)", isNew: false},
-                {from: 1, to: 3, caller: null, message:"insert(adj)", isNew: false},
-                {from: 0, to: 1, caller: null, message:"destroy()", isNew: false}];
+var messages = [{id: 0, from: 0, to: 1, caller: null, message:"new", isNew: false},
+                {id: 1, from: 0, to: 1, caller: null, message:"setLevel(0)", isNew: false},
+                {id: 2, from: 1, to: 2, caller: null, message:"insert(someNode)", isNew: false},
+                {id: 3, from: 0, to: 1, caller: "node", message: "remove()", isNew: false},
+                {id: 4, from: 1, to: 2, caller: "level", message: "getLevel()", isNew: false},
+                {id: 5, from: 2, to: 3, caller: "adjList", message: "getAdjacentNodes()", isNew: false},
+                {id: 6, from: 1, to: 3, caller: "adj", message: "get(i)", isNew: false},
+                {id: 7, from: 0, to: 1, caller: "nodeLevel", message: "getLevel()", isNew: false},
+                {id: 8, from: 1, to: 5, caller: null, message:"setLevel(level+1)", isNew: false},
+                {id: 9, from: 1, to: 3, caller: null, message:"insert(adj)", isNew: false},
+                {id: 10, from: 0, to: 1, caller: null, message:"destroy()", isNew: false}];
 
-var elements = new sd.SVG(objects, groups, messages);
-
+var elements = new sd.SDController(objects, groups, messages);
+elements.draw();
 </script>
 </body>

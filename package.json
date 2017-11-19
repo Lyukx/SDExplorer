@@ -8,6 +8,6 @@
   "devDependencies": {
     "rollup": "0.45",
     "rollup-plugin-node-resolve": "2",
-    "uglify-js": "2"
+    "uglify-es": "^3.1.9"
   }
 }

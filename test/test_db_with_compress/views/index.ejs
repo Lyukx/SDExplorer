@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+  </head>
+<body>
+<div id="drawArea"></div>
+<script src="javascripts/d3.min.js"></script>
+<script src="javascripts/sd.js"></script>
+<script>
+    var urlObj = "http://localhost:3000/fetchObject";
+    var urlGrp = "http://localhost:3000/fetchGroup";
+    var urlMsg = "http://localhost:3000/fetchMessage/" + 0;
+    var objects;
+    var groups;
+    var messages;
+    d3.json(urlObj, function(err, data) {
+        if(err){
+            console.log("Error while loading objects");
+            console.log(err);
+        }
+        else{
+            objects = data;
+            d3.json(urlGrp, function(err, data) {
+                if(err){
+                    console.log("Error while loading objects");
+                    console.log(err);
+                }
+                else{
+                    groups = data;
+                    d3.json(urlMsg, function(err, data){
+                        if(err){
+                            console.log("Error while loading objects");
+                            console.log(err);
+                        }
+                        else{
+                            messages = data;
+                            console.log( { "objects" : objects,
+                                     "groups" : groups,
+                                     "messages" : messages
+                                 });
+                            svg = new sd.SVG(objects, groups, messages);
+                        }
+                    });
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
     <div id="drawArea"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
 <script src="sd.js"></script>
-
+<script src="setupsvg.js"></script>
 <script>
 var objects = [];
 for(var i = 0; i < 2; i++){
@@ -15,10 +15,10 @@ var groups = [];
 
 var messages = [];
 for(var i = 1; i < 1000; i++){
-    messages.push({from: 0, to: 1, caller: null, message:"foo", isNew: false});
+    messages.push({id: i, from: 0, to: 1, caller: null, message:"foo", isNew: false});
 }
 
-var elements = new sd.SVG(objects, groups, messages);
-
+var elements = new sd.SDController(objects, groups, messages);
+elements.draw();
 </script>
 </body>

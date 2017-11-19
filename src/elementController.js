@@ -7,6 +7,7 @@ var PADDING_GROUP = 10;
 
 var elementMap = []; // [id => element]
 var display = [];
+var displaySet;
 
 function initElements(objects, groups) {
     elementMap = new Map();
@@ -53,6 +54,8 @@ export default function ElementController(objects, groups){
         display[i].x = dist;
         dist += (display[i].width + PADDING);
     }
+
+    updateDisplaySet();
 }
 
 ElementController.prototype.getElementMap = function(){
@@ -61,6 +64,10 @@ ElementController.prototype.getElementMap = function(){
 
 ElementController.prototype.getDisplay = function(){
     return display;
+}
+
+ElementController.prototype.getDisplaySet = function(){
+    return displaySet;
 }
 
 ElementController.prototype.unfoldUpdateStatus = function(groupId){
@@ -97,6 +104,8 @@ ElementController.prototype.unfoldUpdateStatus = function(groupId){
         tempGroup.height += (2 * PADDING_GROUP);
         tempGroup.y -= PADDING_GROUP;
     }
+
+    updateDisplaySet();
 }
 
 ElementController.prototype.foldUpdateStatus = function(groupId){
@@ -129,5 +138,16 @@ ElementController.prototype.foldUpdateStatus = function(groupId){
         tempGroup.width -= diff;
         tempGroup.height -= (2 * PADDING_GROUP);
         tempGroup.y += PADDING_GROUP;
+    }
+
+    updateDisplaySet();
+}
+
+function updateDisplaySet(){
+    displaySet = new Set();
+    for(let element of display){
+        if(!(element.isGroup() && !element.fold)){
+            displaySet.add(element.id);
+        }
     }
 }

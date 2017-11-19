@@ -2,27 +2,50 @@ import {default as ElementController} from "./elementController"
 import {default as MessageController} from "./messageController"
 
 var elementController;
+var messageController;
 export default function SDController(objects, groups, messages){
     elementController = new ElementController(objects, groups);
+
+    var elementMap = elementController.getElementMap();
+    var mainThreadSet = new Set([0]);
+    var temp = elementMap.get(0);
+    while(temp.parent != -1){
+        mainThreadSet.add(temp.parent);
+        temp = elementMap.get(temp.parent);
+    }
+    messageController = new MessageController(messages, mainThreadSet, elementController.getDisplaySet(), elementMap);
 }
 
 SDController.prototype.draw = function() {
     generateLayout();
+
+    // draw the elements
     var display = elementController.getDisplay();
     for(var i = 0; i < display.length; i++){
-        // draw the element
         drawElement(display[i]);
+    }
+
+    // draw the messages
+    var validMessages = messageController.getValidMessages();
+    for(let message of validMessages){
+        drawMessage(message);
     }
 }
 
 function unfold(group){
     elementController.unfoldUpdateStatus(group.id);
     unfoldUpdateElements(group, elementController);
+
+    var enabled = messageController.unfoldUpdateStatus(elementController.getDisplaySet(), elementController.getElementMap());
+    updateMessages(enabled);
 }
 
 function fold(group){
     elementController.foldUpdateStatus(group.id);
     foldUpdateElements(group, elementController);
+
+    messageController.unfoldUpdateStatus(elementController.getDisplaySet(), elementController.getElementMap());
+    updateMessages([]); // When fold objects, no new message will appear
 }
 
 function allFolded(group) {
@@ -79,9 +102,44 @@ var MSG_PADDING = MSG_HEIGHT / 8;
 var HINT_WIDTH = 300;
 var HINT_HEIGHT = 90;
 
+function generateLayout() {
+    // Add layouts into svg
+    d3.select("svg")
+        .append("g")
+        .attr("class", "baseline-layout");
+
+    d3.select("svg")
+        .append("g")
+        .attr("class", "loop-layout");
+
+    d3.select("svg")
+        .append("g")
+        .attr("class", "messages-layout");
+
+    d3.select("svg")
+        .append("g")
+        .attr("class", "objects-layout")
+        .attr("transform", "translate(0, 0)");
+}
+
 function drawElement(element){
     var tempG = d3.select(".objects-layout").append("g");
-    //TODO Draw a lifeline
+    // Draw a lifeline
+    var x = element.width / 2;
+    var validMessages = messageController.getValidMessages();
+    var y1 = 0;
+    var y2 = validMessages[validMessages.length - 1].position + 80;
+    d3.select(".baseline-layout").append("line")
+        .attr("class", "baseLine")
+        .attr("x1", x)
+        .attr("y1", y1)
+        .attr("x2", x)
+        .attr("y2", y2)
+        .style("stroke", "black")
+        .style("stroke-dasharray", "2,2,2")
+        .attr("id", "baseLine" + element.id)
+        .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+
 
     // Draw rectangle
     var rect = tempG.append("rect")
@@ -120,26 +178,6 @@ function drawElement(element){
     return tempG;
 }
 
-function generateLayout() {
-    // Add layouts into svg
-    d3.select("svg")
-        .append("g")
-        .attr("class", "baseline-layout");
-
-    d3.select("svg")
-        .append("g")
-        .attr("class", "loop-layout");
-
-    d3.select("svg")
-        .append("g")
-        .attr("class", "messages-layout");
-
-    d3.select("svg")
-        .append("g")
-        .attr("class", "objects-layout")
-        .attr("transform", "translate(0, 0)");
-}
-
 function unfoldUpdateElements(group, elementController){
     d3.selectAll(".element")
       .each(function(element){
@@ -152,33 +190,30 @@ function unfoldUpdateElements(group, elementController){
                     .transition()
                     .style("fill-opacity", "0")
                     .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                /*
+
                   d3.select("#baseLine" + element.id)
                     .transition()
                     .attr("transform", "translate(" + element.x + ", " + element.y + ")")
                     .style("opacity", 0);
-                */
               }
               else{
                   d3.select(this)
                     .transition()
                     .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                /*
+
                   d3.select("#baseLine" + element.id)
                     .transition()
                     .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                */
               }
           }
           else{
               d3.select(this)
                 .transition()
                 .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-            /*
+
               d3.select("#baseLine" + element.id)
                 .transition()
                 .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-            */
           }
     });
 
@@ -194,11 +229,10 @@ function unfoldUpdateElements(group, elementController){
         temp.attr("transform", "translate(" + group.x + ", " + (group.y + PADDING_GROUP) + ")");
         temp.transition()
             .attr("transform", "translate(" + thisElement.x + ", " + thisElement.y + ")");
-        /*
+
         d3.select("#baseLine" + elementId)
             .transition()
             .attr("transform", "translate(" + thisElement.x + ", " + thisElement.y + ")");
-        */
     }
 }
 
@@ -206,7 +240,7 @@ function foldUpdateElements(group, elementController) {
     d3.selectAll(".element")
         .each(function(element){
             if(group.children.indexOf(element.id) != -1){
-                //d3.select("#baseLine" + element.id).remove();
+                d3.select("#baseLine" + element.id).remove();
                 d3.select(this).remove();
             }
             else if(element.isGroup()){
@@ -221,33 +255,30 @@ function foldUpdateElements(group, elementController) {
                         .transition()
                         .style("fill-opacity", "1")
                         .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                    /*
+
                     d3.select("#baseLine" + element.id)
                         .transition()
                         .style("opacity", 1)
                         .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                    */
                 }
                 else{
                     d3.select(this)
                         .transition()
                         .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                    /*
+
                     d3.select("#baseLine" + element.id)
                         .transition()
                         .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                    */
                 }
             }
             else{
                 d3.select(this)
                     .transition()
                     .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                /*
+
                 d3.select("#baseLine" + element.id)
                     .transition()
                     .attr("transform", "translate(" + element.x + ", " + element.y + ")");
-                */
             }
         });
 
@@ -255,4 +286,135 @@ function foldUpdateElements(group, elementController) {
     elementController.getDisplay().forEach(function(element){
         ELEMENT_PADDING = Math.max(ELEMENT_PADDING, element.height);
     });
+}
+
+function drawMessage(message){
+    var elementMap = elementController.getElementMap();
+
+    var from = elementMap.get(message.from);
+    var to = elementMap.get(message.to);
+    // left active bar
+    var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2;
+    var y1 = message.position + MSG_PADDING;
+    var h1 = message.scale * MSG_HEIGHT - 2 * MSG_PADDING;
+
+    // right active bar
+    var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2;
+    var y2 = y1 + MSG_PADDING;
+    var h2 = h1 - 2 * MSG_PADDING;
+
+    var leftToRight = (elementMap.get(message.from).x < elementMap.get(message.to).x);
+
+    var tempG = d3.select(".messages-layout").append("g");
+
+    // Write messages
+    var text = tempG.append("text")
+                    .attr("class", "message-text")
+                    .text(function(d){ return message.message; });
+    if(leftToRight){
+        text.attr("transform", "translate(" + (x1 + PADDING) + "," + y1 + ")");
+    }
+    else{
+        text.attr("transform", "translate(" + (x1 - MSG_ACTIVE_WIDTH) + "," + y1 + ")")
+            .attr("text-anchor", "end");
+    }
+
+    // Draw call line
+    tempG.append("line")
+			.attr("class", "callLine")
+            .style("stroke", "black")
+            .attr("x1", leftToRight ? x1 + MSG_ACTIVE_WIDTH : x1)
+            .attr("y1", y2)
+            .attr("x2", leftToRight ? x2 : x2 + MSG_ACTIVE_WIDTH)
+            .attr("y2", y2)
+            .attr("marker-end", "url(#end)");
+
+    // Draw return line
+    tempG.append("line")
+			.attr("class", "callBackLine")
+            .style("stroke", "black")
+            .style("stroke-dasharray", "5, 5, 5")
+            .attr("x1", leftToRight ? x2 : x2 + MSG_ACTIVE_WIDTH)
+            .attr("y1", y2 + h2)
+            .attr("x2", leftToRight ? x1 + MSG_ACTIVE_WIDTH : x1)
+            .attr("y2", y2 + h2)
+            .attr("marker-end", "url(#end)");
+
+    // Draw right active block
+    tempG.append("rect")
+        	.attr("class", "rightActiveBlock")
+        	.attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h2})
+        	.attr("transform", "translate(" + x2 + "," + y2 + ")")
+			.style("stroke", "black")
+			.style("fill", "#CCC");
+
+    tempG.attr("class", "message")
+        .datum(message);
+}
+
+function updateMessages(enabled){
+    // If there are newly appear messages, draw them
+    for(let message of enabled){
+        if(message.valid)
+            drawMessage(message);
+    }
+
+    var elementMap = elementController.getElementMap();
+    d3.selectAll(".message")
+        .each(function(message){
+            if(!message.valid){
+                d3.select(this).remove();
+                return;
+            }
+            var from = elementMap.get(message.from);
+            var to = elementMap.get(message.to);
+
+            // left active bar
+            var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2;
+            var y1 = message.position + MSG_PADDING;
+            var h1 = message.scale * MSG_HEIGHT - 2 * MSG_PADDING;
+
+            // right active bar
+            var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2;
+            var y2 = y1 + MSG_PADDING;
+            var h2 = h1 - 2 * MSG_PADDING;
+
+            var leftToRight = (elementMap.get(message.from).x < elementMap.get(message.to).x);
+
+            // Update messages
+            if(leftToRight){
+                d3.select(this).select(".message-text")
+                    .transition()
+                    .attr("transform", "translate(" + (x1 + PADDING) + "," + y1 + ")");
+            }
+            else{
+                d3.select(this).select(".message-text")
+                    .transition()
+                    .attr("transform", "translate(" + (x1 - MSG_ACTIVE_WIDTH) + "," + y1 + ")");
+            }
+
+            d3.select(this).select(".callLine")
+                .transition()
+                .attr("x1", leftToRight ? x1 + MSG_ACTIVE_WIDTH : x1)
+                .attr("y1", y2)
+                .attr("x2", leftToRight ? x2 : x2 + MSG_ACTIVE_WIDTH)
+                .attr("y2", y2);
+
+            d3.select(this).select(".callBackLine")
+                .transition()
+                .attr("x1", leftToRight ? x2 : x2 + MSG_ACTIVE_WIDTH)
+                .attr("y1", y2 + h2)
+                .attr("x2", leftToRight ? x1 + MSG_ACTIVE_WIDTH : x1)
+                .attr("y2", y2 + h2);
+
+            d3.select(this).select(".rightActiveBlock")
+                .transition()
+                .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h2})
+                .attr("transform", "translate(" + x2 + "," + y2 + ")");
+
+            d3.select(this).select(".message-click-active-block")
+                .transition()
+                .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
+                .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
+        });
 }
