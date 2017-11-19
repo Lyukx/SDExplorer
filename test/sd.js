@@ -101,6 +101,17 @@ ElementController.prototype.getDisplaySet = function(){
     return displaySet;
 };
 
+ElementController.prototype.getGroupFoldInfo = function(){
+    var groupFoldInfo = new Set();
+    for(let element of display){
+        if(element.isGroup() && !element.fold){
+            groupFoldInfo.add(element.id);
+        }
+    }
+
+    return groupFoldInfo;
+};
+
 ElementController.prototype.unfoldUpdateStatus = function(groupId){
     var thisGroup = elementMap.get(groupId);
     if(!thisGroup.fold)
@@ -291,7 +302,8 @@ function updateStatus(){
 
             // Add message into active stack
             activeStack.push(thisMsg);
-            thisMsg.offset = activeStack.getOffset(thisMsg);
+            thisMsg.fromOffset = activeStack.getOffset(thisMsg.from);
+            thisMsg.toOffset = activeStack.getOffset(thisMsg.to);
 
             //Check enabled
             if(!thisMsg.valid){
@@ -325,6 +337,8 @@ function updateStatus(){
             });
             // Add the message into active set & stack
             activeStack.push(thisMsg);
+            thisMsg.fromOffset = activeStack.getOffset(thisMsg.from);
+            thisMsg.toOffset = activeStack.getOffset(thisMsg.to);
         }
 
         // Message come from non-active or not-main-thread objects
@@ -375,8 +389,13 @@ ActiveStack.prototype.hasActive = function(objectId){
     return this.offset.has(objectId);
 };
 
-ActiveStack.prototype.getOffset = function(message){
-    return this.offset.get(message.to);
+ActiveStack.prototype.getOffset = function(elementId){
+    if(this.offset.has(elementId)){
+        return this.offset.get(elementId);
+    }
+    else{
+        return 0;
+    }
 };
 
 var elementController;
@@ -460,6 +479,44 @@ function foldAll(group){
         }
     }
 }
+
+/****************************************************************************
+This part is "Advanced ussage" of this module.
+They are used in SDViewer module to controll the display
+****************************************************************************/
+SDController.prototype.getMessages = function() {
+    return messageController.getValidMessages();
+};
+
+SDController.prototype.getElements = function() {
+    return elementController.getDisplay();
+};
+
+SDController.prototype.clearAll = function() {
+    d3.select(".messages-layout").remove();
+    d3.select(".objects-layout").remove();
+    d3.select(".loop-layout").remove();
+    d3.select(".loop-layout").remove();
+
+    generateLayout();
+};
+
+SDController.prototype.getFoldInfo = function() {
+    // Return a set of unfold groups
+    return elementController.getGroupFoldInfo();
+};
+
+SDController.prototype.updateWithoutAnimation = function(unfoldSet) {
+    for(let element of elementController.getDisplay()){
+        if(unfoldSet.has(element.id)){
+            elementController.unfoldUpdateStatus(group.id);
+            unfoldUpdateElementsWithoutAnimation(group, elementController);
+
+            var enabled = messageController.unfoldUpdateStatus(elementController.getDisplaySet(), elementController.getElementMap());
+            updateMessagesWithoutAnimation(enabled);
+        }
+    }
+};
 
 /********************************************************************************************************************
 Rest part is the 'render' part, which contains functions to draw / modify elements on the SVG.
@@ -662,18 +719,68 @@ function foldUpdateElements(group, elementController) {
     });
 }
 
+function unfoldUpdateElementsWithoutAnimation(group, elementController){
+    d3.selectAll(".element")
+      .each(function(element){
+          if(element.isGroup()){
+              d3.select(this).select("rect")
+                .attr({width: element.width, height:element.height});
+              if(element == group){
+                  d3.select(this)
+                    .style("fill-opacity", "0")
+                    .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+
+                  d3.select("#baseLine" + element.id)
+                    .attr("transform", "translate(" + element.x + ", " + element.y + ")")
+                    .style("opacity", 0);
+              }
+              else{
+                  d3.select(this)
+                    .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+
+                  d3.select("#baseLine" + element.id)
+                    .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+              }
+          }
+          else{
+              d3.select(this)
+                .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+
+              d3.select("#baseLine" + element.id)
+                .attr("transform", "translate(" + element.x + ", " + element.y + ")");
+          }
+    });
+
+    elementController.getDisplay().forEach(function(element){
+        ELEMENT_PADDING = Math.max(ELEMENT_PADDING, element.height);
+    });
+
+    var elementMap = elementController.getElementMap();
+    for(var i = 0; i < group.children.length; i++){
+        var elementId = group.children[i];
+        var thisElement = elementMap.get(elementId);
+        var temp = drawElement(thisElement);
+        temp.attr("transform", "translate(" + group.x + ", " + (group.y + PADDING_GROUP) + ")");
+        temp.attr("transform", "translate(" + thisElement.x + ", " + thisElement.y + ")");
+
+        d3.select("#baseLine" + elementId)
+            .attr("transform", "translate(" + thisElement.x + ", " + thisElement.y + ")");
+    }
+}
+
 function drawMessage(message){
     var elementMap = elementController.getElementMap();
 
     var from = elementMap.get(message.from);
     var to = elementMap.get(message.to);
     // left active bar
-    var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2;
+    var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2 + message.fromOffset * MSG_ACTIVE_WIDTH;
     var y1 = message.position + MSG_PADDING;
     var h1 = message.scale * MSG_HEIGHT - 2 * MSG_PADDING;
 
     // right active bar
-    var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2;
+    var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2 + message.toOffset * MSG_ACTIVE_WIDTH;
+    // console.log("message: " + message.message + ", " + message.offset);
     var y2 = y1 + MSG_PADDING;
     var h2 = h1 - 2 * MSG_PADDING;
 
@@ -788,6 +895,67 @@ function updateMessages(enabled){
 
             d3.select(this).select(".message-click-active-block")
                 .transition()
+                .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
+                .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
+        });
+}
+
+function updateMessagesWithoutAnimation(enabled){
+    // If there are newly appear messages, draw them
+    for(let message of enabled){
+        if(message.valid)
+            drawMessage(message);
+    }
+
+    var elementMap = elementController.getElementMap();
+    d3.selectAll(".message")
+        .each(function(message){
+            if(!message.valid){
+                d3.select(this).remove();
+                return;
+            }
+            var from = elementMap.get(message.from);
+            var to = elementMap.get(message.to);
+
+            // left active bar
+            var x1 = from.x + from.width / 2 - MSG_ACTIVE_WIDTH / 2;
+            var y1 = message.position + MSG_PADDING;
+            var h1 = message.scale * MSG_HEIGHT - 2 * MSG_PADDING;
+
+            // right active bar
+            var x2 = to.x + to.width / 2 - MSG_ACTIVE_WIDTH / 2;
+            var y2 = y1 + MSG_PADDING;
+            var h2 = h1 - 2 * MSG_PADDING;
+
+            var leftToRight = (elementMap.get(message.from).x < elementMap.get(message.to).x);
+
+            // Update messages
+            if(leftToRight){
+                d3.select(this).select(".message-text")
+                    .attr("transform", "translate(" + (x1 + PADDING) + "," + y1 + ")");
+            }
+            else{
+                d3.select(this).select(".message-text")
+                    .attr("transform", "translate(" + (x1 - MSG_ACTIVE_WIDTH) + "," + y1 + ")");
+            }
+
+            d3.select(this).select(".callLine")
+                .attr("x1", leftToRight ? x1 + MSG_ACTIVE_WIDTH : x1)
+                .attr("y1", y2)
+                .attr("x2", leftToRight ? x2 : x2 + MSG_ACTIVE_WIDTH)
+                .attr("y2", y2);
+
+            d3.select(this).select(".callBackLine")
+                .attr("x1", leftToRight ? x2 : x2 + MSG_ACTIVE_WIDTH)
+                .attr("y1", y2 + h2)
+                .attr("x2", leftToRight ? x1 + MSG_ACTIVE_WIDTH : x1)
+                .attr("y2", y2 + h2);
+
+            d3.select(this).select(".rightActiveBlock")
+                .attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h2})
+                .attr("transform", "translate(" + x2 + "," + y2 + ")");
+
+            d3.select(this).select(".message-click-active-block")
                 .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
                 .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
         });

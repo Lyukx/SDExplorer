@@ -110,7 +110,8 @@ function updateStatus(){
 
             // Add message into active stack
             activeStack.push(thisMsg);
-            thisMsg.offset = activeStack.getOffset(thisMsg);
+            thisMsg.fromOffset = activeStack.getOffset(thisMsg.from);
+            thisMsg.toOffset = activeStack.getOffset(thisMsg.to);
 
             //Check enabled
             if(!thisMsg.valid){
@@ -144,6 +145,8 @@ function updateStatus(){
             });
             // Add the message into active set & stack
             activeStack.push(thisMsg);
+            thisMsg.fromOffset = activeStack.getOffset(thisMsg.from);
+            thisMsg.toOffset = activeStack.getOffset(thisMsg.to);
         }
 
         // Message come from non-active or not-main-thread objects
@@ -194,6 +197,11 @@ ActiveStack.prototype.hasActive = function(objectId){
     return this.offset.has(objectId);
 }
 
-ActiveStack.prototype.getOffset = function(message){
-    return this.offset.get(message.to);
+ActiveStack.prototype.getOffset = function(elementId){
+    if(this.offset.has(elementId)){
+        return this.offset.get(elementId);
+    }
+    else{
+        return 0;
+    }
 }

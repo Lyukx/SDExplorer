@@ -70,6 +70,17 @@ ElementController.prototype.getDisplaySet = function(){
     return displaySet;
 }
 
+ElementController.prototype.getGroupFoldInfo = function(){
+    var groupFoldInfo = new Set();
+    for(let element of display){
+        if(element.isGroup() && !element.fold){
+            groupFoldInfo.add(element.id);
+        }
+    }
+
+    return groupFoldInfo;
+}
+
 ElementController.prototype.unfoldUpdateStatus = function(groupId){
     var thisGroup = elementMap.get(groupId);
     if(!thisGroup.fold)

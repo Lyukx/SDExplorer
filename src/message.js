@@ -7,7 +7,8 @@ export function Message(rawMessage){
     this.valid = false;
     this.scale = 1;
     this.position = 0;
-    this.offset = 0;
+    this.fromOffset = 0;
+    this.toOffset = 0;
 }
 
 Message.prototype.equals = function(another){
