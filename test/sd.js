@@ -1130,8 +1130,8 @@ var sdController;
 var viewBoxX;
 var viewBoxY;
 
-var diagramSizeX$1 = 126;
-var diagramSizeY$1 = 180;
+var diagramSizeX$1 = 252;
+var diagramSizeY$1 = 360;
 
 var headX = 0;
 var headY = 0;
@@ -1144,6 +1144,14 @@ function SDViewer(objects, groups, messages) {
     sdController.setDiagramDisplayHead(headX, headY);
     sdController.drawWindow();
 }
+
+SDViewer.prototype.search = function(name){
+
+};
+
+SDViewer.prototype.filter = function(validElements){
+
+};
 
 function onDiagramMoved() {
     if(sdController.getMiddleElementX() != -1){

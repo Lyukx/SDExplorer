@@ -6,8 +6,8 @@ var sdController;
 var viewBoxX;
 var viewBoxY;
 
-var diagramSizeX = 126;
-var diagramSizeY = 180;
+var diagramSizeX = 252;
+var diagramSizeY = 360;
 
 var headX = 0;
 var headY = 0;
@@ -19,6 +19,14 @@ export default function SDViewer(objects, groups, messages) {
     sdController.setDiagramSize(diagramSizeX, diagramSizeY);
     sdController.setDiagramDisplayHead(headX, headY);
     sdController.drawWindow();
+}
+
+SDViewer.prototype.search = function(name){
+
+}
+
+SDViewer.prototype.filter = function(validElements){
+
 }
 
 function onDiagramMoved() {
