@@ -7,7 +7,7 @@ export function Element(rawElement) {
     this.id = rawElement.id;
     this.displayName = rawElement.name;
     if(rawElement.type != undefined){ // objects
-        this.displayName += rawElement.type;
+        this.displayName += (":" + rawElement.type);
     }
 
     // Grouping information

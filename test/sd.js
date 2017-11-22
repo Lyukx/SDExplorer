@@ -13,7 +13,7 @@ function Element(rawElement) {
     this.id = rawElement.id;
     this.displayName = rawElement.name;
     if(rawElement.type != undefined){ // objects
-        this.displayName += rawElement.type;
+        this.displayName += (":" + rawElement.type);
     }
 
     // Grouping information
@@ -1166,16 +1166,19 @@ function onDiagramMoved() {
         updateSD(temp, headY);
     }
     if(sdController.getMiddleMessageY() != -1){
-        if(viewBoxY >= sdController.getMiddleMessageIndex()){
+        if(viewBoxY >= sdController.getMiddleMessageY()){
             updateSD(headX, sdController.getMiddleMessageIndex());
         }
     }
     if(headY > 0 && viewBoxY <= sdController.getHeadMessageY()){
+        console.log("hit!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        console.log("headY: " + headY + ", " + sdController.getHeadMessageY() + ", viewBoxY: " + viewBoxY);
         var temp = headY - (diagramSizeY$1 / 2);
         if(temp < 0)
             temp = 0;
         updateSD(headX, temp);
     }
+
     keepElementTop();
 }
 

@@ -42,7 +42,7 @@ function onDiagramMoved() {
         updateSD(temp, headY);
     }
     if(sdController.getMiddleMessageY() != -1){
-        if(viewBoxY >= sdController.getMiddleMessageIndex()){
+        if(viewBoxY >= sdController.getMiddleMessageY()){
             updateSD(headX, sdController.getMiddleMessageIndex());
         }
     }
@@ -52,6 +52,7 @@ function onDiagramMoved() {
             temp = 0;
         updateSD(headX, temp);
     }
+
     keepElementTop()
 }
 
