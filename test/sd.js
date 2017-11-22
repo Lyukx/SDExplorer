@@ -562,6 +562,19 @@ SDController.prototype.getHeadMessageY = function() {
     return validMessages[diagramStartMsg].position;
 };
 
+SDController.prototype.getIndexByMessageId = function(id) {
+    var elementIndex = -1;
+    var messageIndex = -1;
+    for(var i = 0; i < validMessages.length; i++){
+        if(validMessages[i].id == id){
+            messageIndex = i;
+            elementIndex = display.indexOf(validMessages[i].from);
+        }
+    }
+
+    return [elementIndex, messageIndex];
+};
+
 function updateTopY() {
     var top = 0;
     for(var i = diagramStartEle; i < diagramStartEle + diagramSizeX; i++){
@@ -1145,12 +1158,9 @@ function SDViewer(objects, groups, messages) {
     sdController.drawWindow();
 }
 
-SDViewer.prototype.search = function(name){
-
-};
-
-SDViewer.prototype.filter = function(validElements){
-
+SDViewer.prototype.locate = function(messageId){
+    var param = sdController.getIndexByMessageId(messageId);
+    updateSD(param[0], param[1]);
 };
 
 function onDiagramMoved() {
@@ -1171,8 +1181,6 @@ function onDiagramMoved() {
         }
     }
     if(headY > 0 && viewBoxY <= sdController.getHeadMessageY()){
-        console.log("hit!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        console.log("headY: " + headY + ", " + sdController.getHeadMessageY() + ", viewBoxY: " + viewBoxY);
         var temp = headY - (diagramSizeY$1 / 2);
         if(temp < 0)
             temp = 0;
@@ -1203,6 +1211,9 @@ function setSVG(){
     var isMouseDown, oldScale = 1;
     viewBoxX = - 10;
     viewBoxY = - 10;
+    // Clear drawArea
+    d3.select("svg").remove();
+
     svg = d3.select("#drawArea")
                     .append("svg")
                     .attr("width", width)

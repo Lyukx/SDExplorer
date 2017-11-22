@@ -21,14 +21,6 @@ export default function SDViewer(objects, groups, messages) {
     sdController.drawWindow();
 }
 
-SDViewer.prototype.search = function(name){
-
-}
-
-SDViewer.prototype.filter = function(validElements){
-
-}
-
 function onDiagramMoved() {
     if(sdController.getMiddleElementX() != -1){
         if(viewBoxX >= sdController.getMiddleElementX()){
@@ -77,6 +69,9 @@ function setSVG(){
     var isMouseDown, oldScale = 1;
     viewBoxX = - 10;
     viewBoxY = - 10;
+    // Clear drawArea
+    d3.select("svg").remove();
+
     svg = d3.select("#drawArea")
                     .append("svg")
                     .attr("width", width)
