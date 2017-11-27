@@ -12,6 +12,10 @@ var diagramSizeY = 360;
 var headX = 0;
 var headY = 0;
 
+var width, height;
+var curPos_x, curPos_y, mousePos_x, mousePos_y;
+var isMouseDown, oldScale;
+
 export default function SDViewer(objects, groups, messages) {
     setSVG();
     sdController = new SDController(objects, groups, messages);
@@ -19,6 +23,30 @@ export default function SDViewer(objects, groups, messages) {
     sdController.setDiagramSize(diagramSizeX, diagramSizeY);
     sdController.setDiagramDisplayHead(headX, headY);
     sdController.drawWindow();
+}
+
+SDViewer.prototype.locate = function(messageId){
+    var param = sdController.getIndexByMessageId(messageId);
+    if(param[0] != -1 && param[1] != -1){
+        moveViewBox(param[2], param[3]);
+        onDiagramMoved();
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+SDViewer.prototype.getMessages = function() {
+    return sdController.getMessages();
+}
+
+SDViewer.prototype.getElementSet= function() {
+    return sdController.getElementSet();
+}
+
+SDViewer.prototype.getElementMap = function() {
+    return sdController.getElementMap();
 }
 
 function onDiagramMoved() {
@@ -48,6 +76,12 @@ function onDiagramMoved() {
     keepElementTop()
 }
 
+function moveViewBox(x, y) {
+    viewBoxX = x;
+    viewBoxY = y;
+    svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
+}
+
 function updateSD(x, y) {
     sdController.clearAll();
     headX = x;
@@ -63,10 +97,10 @@ function keepElementTop() {
 
 function setSVG(){
     // Set svg zoomable and draggable
-    var width = window.innerWidth,
-        height = window.innerHeight;
-    var curPos_x, curPos_y, mousePos_x, mousePos_y;
-    var isMouseDown, oldScale = 1;
+    width = window.innerWidth;
+    height = window.innerHeight - 100;
+    curPos_x, curPos_y, mousePos_x, mousePos_y;
+    isMouseDown, oldScale = 1;
     viewBoxX = - 10;
     viewBoxY = - 10;
     // Clear drawArea

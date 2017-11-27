@@ -441,8 +441,12 @@ SDController.prototype.getMessages = function() {
     return validMessages;
 };
 
-SDController.prototype.getElements = function() {
-    return display;
+SDController.prototype.getElementSet = function() {
+    return displaySet;
+};
+
+SDController.prototype.getElementMap = function() {
+    return elementMap;
 };
 
 function unfold(group){
@@ -565,14 +569,26 @@ SDController.prototype.getHeadMessageY = function() {
 SDController.prototype.getIndexByMessageId = function(id) {
     var elementIndex = -1;
     var messageIndex = -1;
+    var elementPosition = -1;
+    var messagePosition = -1;
     for(var i = 0; i < validMessages.length; i++){
         if(validMessages[i].id == id){
             messageIndex = i;
-            elementIndex = display.indexOf(validMessages[i].from);
+            messagePosition = validMessages[i].position;
+            break;
+        }
+    }
+    if(messageIndex != -1){
+        for(var j = 0; j < display.length; j++){
+            if(display[j].id == validMessages[messageIndex].from){
+                elementIndex = j;
+                elementPosition = display[j].x;
+                break;
+            }
         }
     }
 
-    return [elementIndex, messageIndex];
+    return [elementIndex, messageIndex, elementPosition, messagePosition - 60];
 };
 
 function updateTopY() {
@@ -1149,6 +1165,15 @@ var diagramSizeY$1 = 360;
 var headX = 0;
 var headY = 0;
 
+var width;
+var height;
+var curPos_x;
+var curPos_y;
+var mousePos_x;
+var mousePos_y;
+var isMouseDown;
+var oldScale;
+
 function SDViewer(objects, groups, messages) {
     setSVG();
     sdController = new SDController(objects, groups, messages);
@@ -1160,7 +1185,26 @@ function SDViewer(objects, groups, messages) {
 
 SDViewer.prototype.locate = function(messageId){
     var param = sdController.getIndexByMessageId(messageId);
-    updateSD(param[0], param[1]);
+    if(param[0] != -1 && param[1] != -1){
+        moveViewBox(param[2], param[3]);
+        onDiagramMoved();
+        return true;
+    }
+    else{
+        return false;
+    }
+};
+
+SDViewer.prototype.getMessages = function() {
+    return sdController.getMessages();
+};
+
+SDViewer.prototype.getElementSet= function() {
+    return sdController.getElementSet();
+};
+
+SDViewer.prototype.getElementMap = function() {
+    return sdController.getElementMap();
 };
 
 function onDiagramMoved() {
@@ -1190,6 +1234,12 @@ function onDiagramMoved() {
     keepElementTop();
 }
 
+function moveViewBox(x, y) {
+    viewBoxX = x;
+    viewBoxY = y;
+    svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
+}
+
 function updateSD(x, y) {
     sdController.clearAll();
     headX = x;
@@ -1205,10 +1255,10 @@ function keepElementTop() {
 
 function setSVG(){
     // Set svg zoomable and draggable
-    var width = window.innerWidth,
-        height = window.innerHeight;
-    var curPos_x, curPos_y, mousePos_x, mousePos_y;
-    var isMouseDown, oldScale = 1;
+    width = window.innerWidth;
+    height = window.innerHeight - 100;
+    curPos_x, curPos_y, mousePos_x, mousePos_y;
+    isMouseDown, oldScale = 1;
     viewBoxX = - 10;
     viewBoxY = - 10;
     // Clear drawArea

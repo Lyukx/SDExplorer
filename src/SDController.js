@@ -54,8 +54,12 @@ SDController.prototype.getMessages = function() {
     return validMessages;
 }
 
-SDController.prototype.getElements = function() {
-    return display;
+SDController.prototype.getElementSet = function() {
+    return displaySet;
+}
+
+SDController.prototype.getElementMap = function() {
+    return elementMap;
 }
 
 function unfold(group){
@@ -173,6 +177,31 @@ SDController.prototype.getMiddleMessageY = function() {
 
 SDController.prototype.getHeadMessageY = function() {
     return validMessages[diagramStartMsg].position;
+}
+
+SDController.prototype.getIndexByMessageId = function(id) {
+    var elementIndex = -1;
+    var messageIndex = -1;
+    var elementPosition = -1;
+    var messagePosition = -1;
+    for(var i = 0; i < validMessages.length; i++){
+        if(validMessages[i].id == id){
+            messageIndex = i;
+            messagePosition = validMessages[i].position;
+            break;
+        }
+    }
+    if(messageIndex != -1){
+        for(var j = 0; j < display.length; j++){
+            if(display[j].id == validMessages[messageIndex].from){
+                elementIndex = j;
+                elementPosition = display[j].x;
+                break;
+            }
+        }
+    }
+
+    return [elementIndex, messageIndex, elementPosition, messagePosition - 60];
 }
 
 function updateTopY() {
