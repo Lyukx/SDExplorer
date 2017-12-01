@@ -16,6 +16,9 @@ var width, height;
 var curPos_x, curPos_y, mousePos_x, mousePos_y;
 var isMouseDown, oldScale;
 
+var displaySet;
+var elementMap;
+
 export default function SDViewer(objects, groups, messages) {
     setSVG();
     sdController = new SDController(objects, groups, messages);
@@ -23,6 +26,28 @@ export default function SDViewer(objects, groups, messages) {
     sdController.setDiagramSize(diagramSizeX, diagramSizeY);
     sdController.setDiagramDisplayHead(headX, headY);
     sdController.drawWindow();
+    displaySet = sdController.getElementSet();
+    elementMap = sdController.getElementMap();
+}
+
+SDViewer.prototype.isMessageDisplayed = function(message){
+    // find the from/to relationship
+    while(!displaySet.has(message.from)){
+        var parent = elementMap.get(message.from).parent;
+        if(parent == -1){
+            break;
+        }
+        message.from = parent;
+    }
+    while(!displaySet.has(message.to)){
+        var parent = elementMap.get(message.to).parent;
+        if(parent == -1){
+            break;
+        }
+        message.to = parent;
+    }
+
+    return !(message.from == message.to || message.from == -1 || message.to == -1);
 }
 
 SDViewer.prototype.locate = function(messageId){
