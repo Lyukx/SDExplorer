@@ -15,14 +15,15 @@ export default function MessageController(messages, mainThreads, displaySet, ele
     totalMessages = [];
     for(let message of messages){
         // Filter invalid messages
-        if(elementMap.has(message.from) && elementMap.has(message.to)){
-            totalMessages.push(message);
-            originMessages.set(message.id, {from:message.from, to:message.to});
-        }
+        totalMessages.push(new Message(message));
+        originMessages.set(message.id, {from:message.from, to:message.to});
     }
 
     // if the message is from/to elements in a grouped group, change the from/to attribute
     for(let message of totalMessages){
+        if(message.to == -1){ // skip return message
+            continue;
+        }
         while(!displaySet.has(message.from)){
             var parent = elementMap.get(message.from).parent;
             if(parent == -1){
@@ -47,6 +48,9 @@ export default function MessageController(messages, mainThreads, displaySet, ele
 
 MessageController.prototype.foldUpdateStatus = function(group){
     for(let message of totalMessages){
+        if(message.to == -1){ // skip return message
+            continue;
+        }
         if(group.children.indexOf(message.from) != -1)
             message.from = group.id;
         if(group.children.indexOf(message.to) != -1)
@@ -57,6 +61,9 @@ MessageController.prototype.foldUpdateStatus = function(group){
 
 MessageController.prototype.unfoldUpdateStatus = function(display, elementMap){
     for(let message of totalMessages){
+        if(message.to == -1){ // skip return message
+            continue;
+        }
         if(!display.has(message.from)){
             message.from = originMessages.get(message.id).from;
             while(!display.has(message.from)){
@@ -79,10 +86,83 @@ MessageController.prototype.unfoldUpdateStatus = function(display, elementMap){
         }
         //console.log("" + message.from + " -> " + message.to + " : " + message.message);
     }
-    return updateStatus();
+    updateStatus();
+}
+
+function updateStatus() {
+    // Remove invalid messages in total message
+    var rawValidMessages = [];
+    var validMessageSet = new Set(); // id
+    for(var i = 0; i < totalMessages.length; i++){
+        var thisMsg = totalMessages[i];
+        if(thisMsg.isReturn()){
+            if(validMessageSet.has(thisMsg.id)){
+                rawValidMessages.push(thisMsg)
+            }
+        }
+        else if(thisMsg.to != thisMsg.from && thisMsg.from != -1 && thisMsg.to != -1){
+            rawValidMessages.push(thisMsg);
+            validMessageSet.add(thisMsg.id);
+        }
+        else{
+            thisMsg.valid = false;
+        }
+    }
+
+    // Decide the position and scale of messages
+    validMessages = [];
+    var enabledMessages = [];
+    var activeStack = new ActiveStack();
+    var messageMap = new Map(); // id => message
+
+    var position = MSG_HEIGHT / 4;
+
+    for(var i = 0; i < rawValidMessages.length; i++){
+        var thisMessage = totalMessages[i];
+        if(!thisMessage.isReturn()){
+            messageMap.set(thisMessage.id, [thisMessage, i]);
+            position += MSG_HEIGHT / 2;
+            thisMessage.position = position;
+
+            activeStack.push(thisMessage);
+            thisMessage.fromOffset = activeStack.getOffset(thisMessage.from);
+            thisMessage.toOffset = activeStack.getOffset(thisMessage.to);
+
+            if(!thisMsg.valid){
+                enabledMessages.push(thisMsg);
+            }
+            thisMessage.valid = true;
+            validMessages.push(thisMessage);
+        }
+        else{
+            var returnedMessage = messageMap.get(thisMessage.id)[0];
+            var distance = i - messageMap.get(thisMessage.id)[1];
+            position += MSG_HEIGHT / 2;
+            returnedMessage.scale = (distance + 1) / 2;
+
+            // Here we have an assume that every time the stack pops, we get the message returned
+            // It works in single-thread sequence diagram, but this return method actually doesn't work in multi-thread scenario
+            activeStack.pop();
+        }
+    }
+
+    // It is possible that not all messages are returned while drawing partial sequence diagrams
+    var count = rawValidMessages.length;
+    while(!activeStack.isEmpty()){
+        var message = activeStack.pop();
+        var distance = count - messageMap.get(message.id)[1];
+        position += MSG_HEIGHT / 2;
+        message.scale = (distance + 1) / 2;
+        count ++;
+    }
+
+    return enabledMessages;
 }
 
 //Decide the validations/scales/positions/stackOffsets of messages
+// 2017.12.1 tend to use return message, so the call stack based method is no use
+// However, this part still has its value to support the lack-return sequence diagram, so it is remained.
+/*
 function updateStatus(){
     var activeStack = new ActiveStack();
 
@@ -154,7 +234,7 @@ function updateStatus(){
     }
     return enabledMessages;
 }
-
+*/
 function ActiveStack(){
     this.stack = [];
     this.offset = new Map();
@@ -193,6 +273,10 @@ ActiveStack.prototype.peek = function(){
 
 ActiveStack.prototype.hasActive = function(objectId){
     return this.offset.has(objectId);
+}
+
+ActiveStack.prototype.isEmpty = function(){
+    return this.stack.length == 0;
 }
 
 ActiveStack.prototype.getOffset = function(elementId){
