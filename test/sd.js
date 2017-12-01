@@ -313,6 +313,7 @@ function updateStatus() {
             thisMsg.valid = false;
         }
     }
+    console.log(rawValidMessages);
 
     // Decide the position and scale of messages
     validMessages$1 = [];
@@ -323,7 +324,7 @@ function updateStatus() {
     var position = MSG_HEIGHT$1 / 4;
 
     for(var i = 0; i < rawValidMessages.length; i++){
-        var thisMessage = totalMessages[i];
+        var thisMessage = rawValidMessages[i];
         if(!thisMessage.isReturn()){
             messageMap.set(thisMessage.id, [thisMessage, i]);
             position += MSG_HEIGHT$1 / 2;
