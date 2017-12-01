@@ -291,7 +291,7 @@ MessageController.prototype.unfoldUpdateStatus = function(display, elementMap){
         }
         //console.log("" + message.from + " -> " + message.to + " : " + message.message);
     }
-    updateStatus();
+    return updateStatus();
 };
 
 function updateStatus() {
@@ -313,7 +313,6 @@ function updateStatus() {
             thisMsg.valid = false;
         }
     }
-    console.log(rawValidMessages);
 
     // Decide the position and scale of messages
     validMessages$1 = [];
