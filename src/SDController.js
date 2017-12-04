@@ -619,6 +619,87 @@ function drawMessage(message){
 
     tempG.attr("class", "message")
         .datum(message);
+
+    // Add hint box
+    // Message info block
+    tempG.append("rect")
+        .attr("class", "message-click-active-block")
+        .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
+        .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")")
+        .style("fill", "#99ccff")
+        .style("fill-opacity", "0")
+        .datum(message.id);
+
+    tempG.attr("class", "message")
+        .datum(message)
+        .on("dblclick", function(thisMessage){
+            var thisActive = d3.select(this).select(".message-click-active-block");
+            if(active != undefined){
+                active.style("fill-opacity", "0");
+                if(active.datum() != thisActive.datum()){
+                    thisActive.style("fill-opacity", "0.4");
+                    active = thisActive;
+                    var curX = d3.mouse(this)[0];
+                    var curY = d3.mouse(this)[1];
+                    d3.select(".hint-box").remove();
+                    addHint(message.from, message.to, message.message, curX, curY);
+                }
+                else{
+                    active = undefined;
+                    d3.select(".hint-box").remove();
+                }
+            }
+            else{
+                thisActive.style("fill-opacity", "0.4");
+                active = thisActive;
+                var curX = d3.mouse(this)[0];
+                var curY = d3.mouse(this)[1];
+                addHint(message.from, message.to, message.message, curX, curY);
+            }
+        });
+}
+
+var HINT_WIDTH = 300;
+var HINT_HEIGHT = 90;
+var active;
+function addHint(from, to, msg, curX, curY){
+    var tempG = d3.select("svg")
+                    .append("g")
+                    .attr("class", "hint-box");
+
+    var fromT = elementMap.get(from).displayName;
+    var toT = elementMap.get(to).displayName;
+
+    var scale = 1;
+    var viewBox = d3.select("svg");
+    if(viewBox[0][0] != null){
+        viewBox = viewBox.attr("viewBox")
+        var windowX = window.innerWidth;
+        scale = viewBox.split(" ")[2] / windowX;
+    }
+    var width = (Math.max(fromT.length, toT.length, msg.length) + 8) * ELEMENT_CH_WIDTH + 2 * PADDING;
+
+    tempG.append("rect")
+        .attr({x: 0, y: 0, width: width, height: HINT_HEIGHT})
+        .style("fill", "#FEF8DE")
+        .style("stroke", "black");
+
+    tempG.append("text")
+        .text(function(d){ return "Caller: " + fromT; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.append("text")
+        .text(function(d){ return "Callee: " + toT; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 2 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.append("text")
+        .text(function(d){ return "Method: " + msg; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 * 5 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.attr("transform", "translate(" + curX + "," + curY + ") scale(" + scale + ")")
 }
 
 function updateMessages(enabled){

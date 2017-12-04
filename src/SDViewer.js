@@ -191,9 +191,19 @@ function setSVG(){
     	                    viewBoxY = Math.max(curPos_y - scale * (curPos_y - viewBoxY), 2 * sdController.top);
     	                    svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
 
+                            // Keep the hint box a constant size
+                            var hintBox = d3.select(".hint-box");
+                            if(hintBox[0][0] != null){
+                                var attr = hintBox.attr("transform").split(" ");
+                                hintBox.attr("transform", attr[0] + " scale(" + (1 / oldScale) + ")");
+                            }
+
                             onDiagramMoved();
                         }
     	            }));
+    // Disable double-click zoom
+    svg.on("dblclick.zoom", null);
+
     svg.on("mousedown", function () {
         isMouseDown = true;
         mousePos_x = d3.mouse(this)[0];

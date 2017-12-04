@@ -802,6 +802,7 @@ SDController.prototype.updateWithoutAnimation = function(unfoldSet) {
 Rest part is the 'render' part, which contains functions to draw / modify elements on the SVG.
 *********************************************************************************************************************/
 var ELEMENT_HEIGHT = 40;
+var ELEMENT_CH_WIDTH = 10;
 var ELEMENT_CH_HEIGHT = 4;
 
 var PADDING = 20;
@@ -812,6 +813,8 @@ var ELEMENT_PADDING = ELEMENT_HEIGHT;
 var MSG_ACTIVE_WIDTH = 10;
 var MSG_HEIGHT = 80;
 var MSG_PADDING = MSG_HEIGHT / 8;
+
+var HINT_HEIGHT = 90;
 
 function generateLayout() {
     // Add layouts into svg
@@ -1123,6 +1126,86 @@ function drawMessage(message){
 
     tempG.attr("class", "message")
         .datum(message);
+
+    // Add hint box
+    // Message info block
+    tempG.append("rect")
+        .attr("class", "message-click-active-block")
+        .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
+        .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")")
+        .style("fill", "#99ccff")
+        .style("fill-opacity", "0")
+        .datum(message.id);
+
+    tempG.attr("class", "message")
+        .datum(message)
+        .on("dblclick", function(thisMessage){
+            var thisActive = d3.select(this).select(".message-click-active-block");
+            if(active != undefined){
+                active.style("fill-opacity", "0");
+                if(active.datum() != thisActive.datum()){
+                    thisActive.style("fill-opacity", "0.4");
+                    active = thisActive;
+                    var curX = d3.mouse(this)[0];
+                    var curY = d3.mouse(this)[1];
+                    d3.select(".hint-box").remove();
+                    addHint(message.from, message.to, message.message, curX, curY);
+                }
+                else{
+                    active = undefined;
+                    d3.select(".hint-box").remove();
+                }
+            }
+            else{
+                thisActive.style("fill-opacity", "0.4");
+                active = thisActive;
+                var curX = d3.mouse(this)[0];
+                var curY = d3.mouse(this)[1];
+                addHint(message.from, message.to, message.message, curX, curY);
+            }
+        });
+}
+
+var HINT_HEIGHT = 90;
+var active;
+function addHint(from, to, msg, curX, curY){
+    var tempG = d3.select("svg")
+                    .append("g")
+                    .attr("class", "hint-box");
+
+    var fromT = elementMap.get(from).displayName;
+    var toT = elementMap.get(to).displayName;
+
+    var scale = 1;
+    var viewBox = d3.select("svg");
+    if(viewBox[0][0] != null){
+        viewBox = viewBox.attr("viewBox");
+        var windowX = window.innerWidth;
+        scale = viewBox.split(" ")[2] / windowX;
+    }
+    var width = (Math.max(fromT.length, toT.length, msg.length) + 8) * ELEMENT_CH_WIDTH + 2 * PADDING;
+
+    tempG.append("rect")
+        .attr({x: 0, y: 0, width: width, height: HINT_HEIGHT})
+        .style("fill", "#FEF8DE")
+        .style("stroke", "black");
+
+    tempG.append("text")
+        .text(function(d){ return "Caller: " + fromT; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.append("text")
+        .text(function(d){ return "Callee: " + toT; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 2 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.append("text")
+        .text(function(d){ return "Method: " + msg; })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 * 5 + ELEMENT_CH_HEIGHT) + ")")
+        .style("font-family","Courier New");
+
+    tempG.attr("transform", "translate(" + curX + "," + curY + ") scale(" + scale + ")");
 }
 
 function updateMessages(enabled){
@@ -1657,9 +1740,19 @@ function setSVG(){
     	                    viewBoxY = Math.max(curPos_y - scale * (curPos_y - viewBoxY), 2 * sdController.top);
     	                    svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
 
+                            // Keep the hint box a constant size
+                            var hintBox = d3.select(".hint-box");
+                            if(hintBox[0][0] != null){
+                                var attr = hintBox.attr("transform").split(" ");
+                                hintBox.attr("transform", attr[0] + " scale(" + (1 / oldScale) + ")");
+                            }
+
                             onDiagramMoved();
                         }
     	            }));
+    // Disable double-click zoom
+    svg.on("dblclick.zoom", null);
+
     svg.on("mousedown", function () {
         isMouseDown = true;
         mousePos_x = d3.mouse(this)[0];
