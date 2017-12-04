@@ -7,6 +7,8 @@ var validMessages; // The valid messages (those be displayed)
 var originMessages; // Total messages (Saved in a map form: [id => message])
 var totalMessages; // Total messages (from / to may be changed by grouping objects)
 
+var rawValidMessages; // Used for compress
+
 var mainThreadSet;
 
 export default function MessageController(messages, mainThreads, displaySet, elementMap){
@@ -25,6 +27,10 @@ export default function MessageController(messages, mainThreads, displaySet, ele
             continue;
         }
         while(!displaySet.has(message.from)){
+            if(elementMap.get(message.from) == undefined){ // invalid messages
+                message.from = -1;
+                break;
+            }
             var parent = elementMap.get(message.from).parent;
             if(parent == -1){
                 break;
@@ -32,6 +38,10 @@ export default function MessageController(messages, mainThreads, displaySet, ele
             message.from = parent;
         }
         while(!displaySet.has(message.to)){
+            if(elementMap.get(message.to) == undefined){ // invalid messages
+                message.to = -1;
+                break;
+            }
             var parent = elementMap.get(message.to).parent;
             if(parent == -1){
                 break;
@@ -59,9 +69,13 @@ MessageController.prototype.foldUpdateStatus = function(group){
     updateStatus();
 }
 
+MessageController.prototype.getRawMessages = function(){
+    return rawValidMessages;
+}
+
 MessageController.prototype.unfoldUpdateStatus = function(display, elementMap){
     for(let message of totalMessages){
-        if(message.to == -1){ // skip return message
+        if(message.to == -1 || message.from == -1){ // skip return message & invalid messages
             continue;
         }
         if(!display.has(message.from)){
@@ -91,7 +105,7 @@ MessageController.prototype.unfoldUpdateStatus = function(display, elementMap){
 
 function updateStatus() {
     // Remove invalid messages in total message
-    var rawValidMessages = [];
+    rawValidMessages = [];
     var validMessageSet = new Set(); // id
     for(var i = 0; i < totalMessages.length; i++){
         var thisMsg = totalMessages[i];

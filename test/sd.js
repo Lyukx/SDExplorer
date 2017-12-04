@@ -214,6 +214,8 @@ var validMessages$1; // The valid messages (those be displayed)
 var originMessages; // Total messages (Saved in a map form: [id => message])
 var totalMessages; // Total messages (from / to may be changed by grouping objects)
 
+var rawValidMessages; // Used for compress
+
 var mainThreadSet;
 
 function MessageController(messages, mainThreads, displaySet, elementMap){
@@ -232,6 +234,10 @@ function MessageController(messages, mainThreads, displaySet, elementMap){
             continue;
         }
         while(!displaySet.has(message.from)){
+            if(elementMap.get(message.from) == undefined){ // invalid messages
+                message.from = -1;
+                break;
+            }
             var parent = elementMap.get(message.from).parent;
             if(parent == -1){
                 break;
@@ -239,6 +245,10 @@ function MessageController(messages, mainThreads, displaySet, elementMap){
             message.from = parent;
         }
         while(!displaySet.has(message.to)){
+            if(elementMap.get(message.to) == undefined){ // invalid messages
+                message.to = -1;
+                break;
+            }
             var parent = elementMap.get(message.to).parent;
             if(parent == -1){
                 break;
@@ -266,9 +276,13 @@ MessageController.prototype.foldUpdateStatus = function(group){
     updateStatus();
 };
 
+MessageController.prototype.getRawMessages = function(){
+    return rawValidMessages;
+};
+
 MessageController.prototype.unfoldUpdateStatus = function(display, elementMap){
     for(let message of totalMessages){
-        if(message.to == -1){ // skip return message
+        if(message.to == -1 || message.from == -1){ // skip return message & invalid messages
             continue;
         }
         if(!display.has(message.from)){
@@ -298,7 +312,7 @@ MessageController.prototype.unfoldUpdateStatus = function(display, elementMap){
 
 function updateStatus() {
     // Remove invalid messages in total message
-    var rawValidMessages = [];
+    rawValidMessages = [];
     var validMessageSet = new Set(); // id
     for(var i = 0; i < totalMessages.length; i++){
         var thisMsg = totalMessages[i];
@@ -506,6 +520,8 @@ var displaySet;
 
 var validMessages;
 
+var loopList;
+
 function SDController(objects, groups, messages){
     elementController = new ElementController(objects, groups);
     elementMap = elementController.elementMap;
@@ -558,6 +574,15 @@ SDController.prototype.getElements = function() {
 
 SDController.prototype.getElementMap = function() {
     return elementMap;
+};
+
+SDController.prototype.getRawMessages = function(){
+    return messageController.getRawMessages();
+};
+
+SDController.prototype.setLoops = function(loops){
+    loopList = loops;
+    drawLoops();
 };
 
 function unfold(group){
@@ -749,7 +774,6 @@ SDController.prototype.drawWindow = function() {
 SDController.prototype.clearAll = function() {
     d3.select(".messages-layout").remove();
     d3.select(".objects-layout").remove();
-    d3.select(".loop-layout").remove();
     d3.select(".loop-layout").remove();
     d3.select(".mainthread-layout").remove();
     d3.select(".baseline-layout").remove();
@@ -1045,7 +1069,7 @@ function drawMessage(message){
         var last = diagramStartEle + diagramSizeX;
         if(last >= display.length)
             last = display.length - 1;
-        var xMax = display[last].x;
+        var xMax = display[last].x + display[last].width;
         if(x1 < xMin)
             x1 = xMin;
         if(x2 > xMax)
@@ -1264,6 +1288,180 @@ function updateMainThread(){
     drawMainThread();
 }
 
+function drawLoops(){
+    d3.select(".loop-layout").remove();
+    d3.select("svg")
+        .append("g")
+        .attr("class", "loop-layout");
+
+    var messageDic = new Map();
+    for(let message of validMessages){
+        messageDic.set(message.id, message);
+    }
+
+    for(let loop of loopList){
+        var messagesInLoop = loop.represent;
+        var min = Number.MAX_SAFE_INTEGER;
+        var max = 0;
+        var firstValid = undefined;
+        for(let rawMessage of messagesInLoop){
+            var message = messageDic.get(rawMessage.id);
+            if(firstValid == undefined){
+                firstValid = message;
+            }
+            var from = elementMap.get(message.from);
+            var to = elementMap.get(message.to);
+            // left active bar
+            var x1 = from.x + from.width / 2;
+
+            // right active bar
+            var x2 = to.x + to.width / 2;
+            if(x1 > x2){
+                var temp = x1;
+                x1 = x2;
+                x2 = temp;
+            }
+            x1 -= 60;
+            x2 += 60;
+            if(x1 < min){
+                min = x1;
+            }
+            if(x2 > max){
+                max = x2;
+            }
+        }
+        var y1 = firstValid.position - 10;
+        var h = messagesInLoop.length * MSG_HEIGHT;
+        var temp = d3.select(".loop-layout").append("g");
+
+        temp.append("rect")
+            .attr({x: 0, y: 0, width: max - min, height: h})
+            .style("stroke", "blue")
+            .style("fill-opacity", "0");
+
+        temp.append("rect")
+            .attr({x: 0, y: 0, width: 45, height: 20})
+            .style("stroke", "blue")
+            .style("fill-opacity", "0");
+
+        temp.append("text")
+            .text(function(d){ return "loop"; })
+            .attr("transform", "translate(4, 16)");
+
+        temp.attr("transform", "translate(" + min + "," + y1 + ")");
+    }
+}
+
+// represent: an array of messages
+// repeat: repeat times
+function LoopNode(represent, repeat){
+    this.represent = represent;
+    this.repeat = repeat;
+    this.children = [];
+    this.depth = 1;
+}
+
+LoopNode.prototype.sameRepresent = function(another){
+    if(this.represent.length != another.represent.length){
+        return false;
+    }
+    for(var i = 0; i < this.represent.length; i++){
+        if(!this.represent[i].equals(another.represent[i])){
+            return false;
+        }
+    }
+    return true;
+};
+
+function compareWindows(loopTreeList, start, windowSize){
+    for(var i = start; i < start + windowSize; i++){
+        if(!loopTreeList[i].sameRepresent(loopTreeList[i + windowSize])){
+            return false;
+        }
+    }
+    return true;
+}
+
+function mergeNodes(loopTreeList, start, windowSize, repeat){
+    var represent = [];
+    var children = [];
+    var maxDepth = 0;
+    for(var i = start; i < start + windowSize; i++){
+        represent = represent.concat(loopTreeList[i].represent);
+        children.push(loopTreeList[i]);
+        if(loopTreeList[i].depth > maxDepth)
+            maxDepth = loopTreeList[i].depth;
+    }
+    var merged = new LoopNode(represent, repeat);
+    merged.children = children;
+    merged.depth = maxDepth + 1;
+    return merged;
+}
+
+function compress(messages){
+    var loopTreeList = [];
+    for(var i = 0; i < messages.length; i++){
+        loopTreeList.push(new LoopNode([messages[i]], 1));
+    }
+    var windowSize = 1;
+    //var thread = loopTreeList.length / 2;
+    var thread = 100 > loopTreeList.length / 2 ? loopTreeList.length / 2 : 100;
+    while(windowSize <= thread){
+        for(i = 0; i <= loopTreeList.length - 2 * windowSize; i++){
+            // Find all continuous loop iterations
+            var repeatCount = 1;
+            while(compareWindows(loopTreeList, i, windowSize)){
+                // Remove items in right window
+                loopTreeList.splice(i + windowSize, windowSize);
+                repeatCount ++;
+                if(i > loopTreeList.length - 2 * windowSize)
+                    break;
+            }
+            // There are loops, merge items in the window together
+            if(repeatCount > 1){
+                var merged = mergeNodes(loopTreeList, i, windowSize, repeatCount);
+                loopTreeList.splice(i, windowSize, merged);
+            }
+        }
+        windowSize ++;
+    }
+
+    return loopTreeList;
+}
+
+function getAllLoops(loopTreeRoot){
+    // Apply a DFS on loop tree and find those repeat > 1 nodes
+    var loops = [];
+    if(loopTreeRoot.children.length == 0)
+        return loops;
+    var stack = [];
+    stack.push(loopTreeRoot);
+    while(stack.length != 0){
+        var node = stack.pop();
+        loops.push(node);
+        for(var i = 0; i < node.children.length; i++){
+            // Only access non-leef node
+            if(node.children[i].repeat > 1)
+                stack.push(node.children[i]);
+        }
+    }
+    return loops;
+}
+
+function LoopDetector(messages){
+    var loopTreeList = compress(messages);
+    // Get all loops
+    var loops = [];
+    // Get compressed messages
+    var compressed = [];
+    for(var i = 0; i < loopTreeList.length; i++){
+        loops = loops.concat(getAllLoops(loopTreeList[i]));
+        compressed = compressed.concat(loopTreeList[i].represent);
+    }
+
+    this.result = [loops, compressed];
+}
+
 // This is a module designed for displaying huge sequence diagrams
 var svg;
 var sdController;
@@ -1302,6 +1500,9 @@ function SDViewer(objects, groups, messages) {
 SDViewer.prototype.isMessageDisplayed = function(message){
     // find the from/to relationship
     while(!displaySet$2.has(message.from)){
+        if(elementMap$2.get(message.from) == undefined){
+            return false;
+        }
         var parent = elementMap$2.get(message.from).parent;
         if(parent == -1){
             break;
@@ -1309,6 +1510,9 @@ SDViewer.prototype.isMessageDisplayed = function(message){
         message.from = parent;
     }
     while(!displaySet$2.has(message.to)){
+        if(elementMap$2.get(message.to) == undefined){
+            return false;
+        }
         var parent = elementMap$2.get(message.to).parent;
         if(parent == -1){
             break;
@@ -1319,11 +1523,11 @@ SDViewer.prototype.isMessageDisplayed = function(message){
     return !(message.from == message.to || message.from == -1 || message.to == -1);
 };
 
-SDViewer.prototype.locate = function(messageId){
+SDViewer.prototype.locate = function(messageId, scaleX, scaleY){
     // [elementIndex, messageIndex, elementPosition, messagePosition - 60]
     var param = sdController.getIndexByMessageId(messageId);
     if(param[0] != -1 && param[1] != -1){
-        moveViewBox(param[0], param[1], param[2], param[3]);
+        moveViewBox(param[0], param[1], param[2], param[3], scaleX, scaleY);
         return true;
     }
     else{
@@ -1344,11 +1548,34 @@ SDViewer.prototype.getElementMap = function() {
 };
 
 SDViewer.prototype.getContext = function() {
-    return [headX, headY, viewBoxX, viewBoxY];
+    return [headX, headY, viewBoxX, viewBoxY, width / oldScale, height / oldScale];
 };
 
 SDViewer.prototype.resume = function(context) {
-    moveViewBox(param[0], param[1], param[2], param[3]);
+    moveViewBox(context[0], context[1], context[2], context[3], context[4], context[5]);
+    oldScale = width / context[4];
+};
+
+SDViewer.prototype.compress = function() {
+    var rawMessage = sdController.getRawMessages();
+    var validMessage = sdController.getMessages();
+    var loopDetector = new LoopDetector(validMessage);
+
+    var compressedMessageSet = new Set();
+    for(let message of loopDetector.result[1]){
+        compressedMessageSet.add(message.id);
+    }
+    var resultMessages = [];
+    for(let message of rawMessage){
+        if(compressedMessageSet.has(message.id)){
+            resultMessages.push(message);
+        }
+    }
+    return [loopDetector.result[0], resultMessages];
+};
+
+SDViewer.prototype.setLoops = function(loops) {
+    sdController.setLoops(loops);
 };
 
 function onDiagramMoved() {
@@ -1378,13 +1605,13 @@ function onDiagramMoved() {
     keepElementTop();
 }
 
-function moveViewBox(elementIndex, messageIndex, x, y) {
+function moveViewBox(elementIndex, messageIndex, x, y, scaleX, scaleY) {
     headX = Math.max(elementIndex - diagramSizeX$1 / 2, 0);
     headY = Math.max(messageIndex - diagramSizeY$1 / 2, 0);
     updateSD(headX, headY);
     viewBoxX = x;
     viewBoxY = y;
-    svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
+    svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + scaleX + " " + scaleY);
 
     keepElementTop();
 }

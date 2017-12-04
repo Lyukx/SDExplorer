@@ -16,9 +16,13 @@ var groups = [];
 var messages = [];
 for(var i = 1; i < 1000; i++){
     messages.push({id: i, from: 0, to: 1, caller: null, message:"foo", isNew: false});
+    messages.push({id: i, from: 0, to: -1, caller: null, message:"", isNew: false});
 }
 
-var elements = new sd.SDController(objects, groups, messages);
-elements.draw();
+var elements = new sd.SDViewer(objects, groups, messages);
+var result = elements.compress();
+console.log(result);
+element = new sd.SDViewer(objects, groups, result[1]);
+element.setLoops(result[0]);
 </script>
 </body>

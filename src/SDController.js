@@ -12,6 +12,8 @@ var displaySet;
 
 var validMessages;
 
+var loopList;
+
 export default function SDController(objects, groups, messages){
     elementController = new ElementController(objects, groups);
     elementMap = elementController.elementMap;
@@ -64,6 +66,15 @@ SDController.prototype.getElements = function() {
 
 SDController.prototype.getElementMap = function() {
     return elementMap;
+}
+
+SDController.prototype.getRawMessages = function(){
+    return messageController.getRawMessages();
+}
+
+SDController.prototype.setLoops = function(loops){
+    loopList = loops;
+    drawLoops();
 }
 
 function unfold(group){
@@ -255,7 +266,6 @@ SDController.prototype.drawWindow = function() {
 SDController.prototype.clearAll = function() {
     d3.select(".messages-layout").remove();
     d3.select(".objects-layout").remove();
-    d3.select(".loop-layout").remove();
     d3.select(".loop-layout").remove();
     d3.select(".mainthread-layout").remove();
     d3.select(".baseline-layout").remove();
@@ -555,7 +565,7 @@ function drawMessage(message){
         var last = diagramStartEle + diagramSizeX;
         if(last >= display.length)
             last = display.length - 1;
-        var xMax = display[last].x;
+        var xMax = display[last].x + display[last].width;
         if(x1 < xMin)
             x1 = xMin;
         if(x2 > xMax)
@@ -772,4 +782,68 @@ function drawMainThread() {
 function updateMainThread(){
     d3.selectAll(".mainThreadActiveBar").remove();
     drawMainThread();
+}
+
+function drawLoops(){
+    d3.select(".loop-layout").remove();
+    d3.select("svg")
+        .append("g")
+        .attr("class", "loop-layout");
+
+    var messageDic = new Map();
+    for(let message of validMessages){
+        messageDic.set(message.id, message);
+    }
+
+    for(let loop of loopList){
+        var messagesInLoop = loop.represent;
+        var min = Number.MAX_SAFE_INTEGER;
+        var max = 0;
+        var firstValid = undefined;
+        for(let rawMessage of messagesInLoop){
+            var message = messageDic.get(rawMessage.id);
+            if(firstValid == undefined){
+                firstValid = message;
+            }
+            var from = elementMap.get(message.from);
+            var to = elementMap.get(message.to);
+            // left active bar
+            var x1 = from.x + from.width / 2;
+
+            // right active bar
+            var x2 = to.x + to.width / 2;
+            if(x1 > x2){
+                var temp = x1;
+                x1 = x2;
+                x2 = temp;
+            }
+            x1 -= 60;
+            x2 += 60;
+            if(x1 < min){
+                min = x1;
+            }
+            if(x2 > max){
+                max = x2;
+            }
+        }
+        var y1 = firstValid.position - 10;
+        var h = messagesInLoop.length * MSG_HEIGHT;
+        var temp = d3.select(".loop-layout").append("g");
+
+        temp.append("rect")
+            .attr({x: 0, y: 0, width: max - min, height: h})
+            .style("stroke", "blue")
+            .style("fill-opacity", "0");
+
+        temp.append("rect")
+            .attr({x: 0, y: 0, width: 45, height: 20})
+            .style("stroke", "blue")
+            .style("fill-opacity", "0");
+
+        temp.append("text")
+            .text(function(d){ return "loop"; })
+            .attr("transform", "translate(4, 16)");
+
+        temp.attr("transform", "translate(" + min + "," + y1 + ")");
+    }
 }

@@ -1,4 +1,5 @@
 import {default as SDController} from "./SDController"
+import {LoopDetector} from "./LoopDetector"
 
 // This is a module designed for displaying huge sequence diagrams
 var svg;
@@ -33,6 +34,9 @@ export default function SDViewer(objects, groups, messages) {
 SDViewer.prototype.isMessageDisplayed = function(message){
     // find the from/to relationship
     while(!displaySet.has(message.from)){
+        if(elementMap.get(message.from) == undefined){
+            return false;
+        }
         var parent = elementMap.get(message.from).parent;
         if(parent == -1){
             break;
@@ -40,6 +44,9 @@ SDViewer.prototype.isMessageDisplayed = function(message){
         message.from = parent;
     }
     while(!displaySet.has(message.to)){
+        if(elementMap.get(message.to) == undefined){
+            return false;
+        }
         var parent = elementMap.get(message.to).parent;
         if(parent == -1){
             break;
@@ -50,11 +57,11 @@ SDViewer.prototype.isMessageDisplayed = function(message){
     return !(message.from == message.to || message.from == -1 || message.to == -1);
 }
 
-SDViewer.prototype.locate = function(messageId){
+SDViewer.prototype.locate = function(messageId, scaleX, scaleY){
     // [elementIndex, messageIndex, elementPosition, messagePosition - 60]
     var param = sdController.getIndexByMessageId(messageId);
     if(param[0] != -1 && param[1] != -1){
-        moveViewBox(param[0], param[1], param[2], param[3]);
+        moveViewBox(param[0], param[1], param[2], param[3], scaleX, scaleY);
         return true;
     }
     else{
@@ -75,11 +82,34 @@ SDViewer.prototype.getElementMap = function() {
 }
 
 SDViewer.prototype.getContext = function() {
-    return [headX, headY, viewBoxX, viewBoxY];
+    return [headX, headY, viewBoxX, viewBoxY, width / oldScale, height / oldScale];
 }
 
 SDViewer.prototype.resume = function(context) {
-    moveViewBox(param[0], param[1], param[2], param[3]);
+    moveViewBox(context[0], context[1], context[2], context[3], context[4], context[5]);
+    oldScale = width / context[4];
+}
+
+SDViewer.prototype.compress = function() {
+    var rawMessage = sdController.getRawMessages();
+    var validMessage = sdController.getMessages();
+    var loopDetector = new LoopDetector(validMessage);
+
+    var compressedMessageSet = new Set();
+    for(let message of loopDetector.result[1]){
+        compressedMessageSet.add(message.id);
+    }
+    var resultMessages = [];
+    for(let message of rawMessage){
+        if(compressedMessageSet.has(message.id)){
+            resultMessages.push(message);
+        }
+    }
+    return [loopDetector.result[0], resultMessages];
+}
+
+SDViewer.prototype.setLoops = function(loops) {
+    sdController.setLoops(loops);
 }
 
 function onDiagramMoved() {
@@ -109,13 +139,13 @@ function onDiagramMoved() {
     keepElementTop();
 }
 
-function moveViewBox(elementIndex, messageIndex, x, y) {
+function moveViewBox(elementIndex, messageIndex, x, y, scaleX, scaleY) {
     headX = Math.max(elementIndex - diagramSizeX / 2, 0);
     headY = Math.max(messageIndex - diagramSizeY / 2, 0);
     updateSD(headX, headY);
     viewBoxX = x;
     viewBoxY = y;
-    svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
+    svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + scaleX + " " + scaleY);
 
     keepElementTop();
 }
