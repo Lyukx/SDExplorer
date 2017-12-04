@@ -51,10 +51,10 @@ SDViewer.prototype.isMessageDisplayed = function(message){
 }
 
 SDViewer.prototype.locate = function(messageId){
+    // [elementIndex, messageIndex, elementPosition, messagePosition - 60]
     var param = sdController.getIndexByMessageId(messageId);
     if(param[0] != -1 && param[1] != -1){
-        moveViewBox(param[2], param[3]);
-        onDiagramMoved();
+        moveViewBox(param[0], param[1], param[2], param[3]);
         return true;
     }
     else{
@@ -66,12 +66,20 @@ SDViewer.prototype.getMessages = function() {
     return sdController.getMessages();
 }
 
-SDViewer.prototype.getElementSet= function() {
-    return sdController.getElementSet();
+SDViewer.prototype.getElements= function() {
+    return sdController.getElements();
 }
 
 SDViewer.prototype.getElementMap = function() {
     return sdController.getElementMap();
+}
+
+SDViewer.prototype.getContext = function() {
+    return [headX, headY, viewBoxX, viewBoxY];
+}
+
+SDViewer.prototype.resume = function(context) {
+    moveViewBox(param[0], param[1], param[2], param[3]);
 }
 
 function onDiagramMoved() {
@@ -98,13 +106,18 @@ function onDiagramMoved() {
         updateSD(headX, temp);
     }
 
-    keepElementTop()
+    keepElementTop();
 }
 
-function moveViewBox(x, y) {
+function moveViewBox(elementIndex, messageIndex, x, y) {
+    headX = Math.max(elementIndex - diagramSizeX / 2, 0);
+    headY = Math.max(messageIndex - diagramSizeY / 2, 0);
+    updateSD(headX, headY);
     viewBoxX = x;
     viewBoxY = y;
     svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
+
+    keepElementTop();
 }
 
 function updateSD(x, y) {
@@ -117,6 +130,9 @@ function updateSD(x, y) {
 
 function keepElementTop() {
     d3.select(".objects-layout")
+        .attr("transform", "translate(0," + (viewBoxY - sdController.top) + ")");
+
+    d3.select(".baseline-layout")
         .attr("transform", "translate(0," + (viewBoxY - sdController.top) + ")");
 }
 

@@ -58,6 +58,10 @@ SDController.prototype.getElementSet = function() {
     return displaySet;
 }
 
+SDController.prototype.getElements = function() {
+    return display;
+}
+
 SDController.prototype.getElementMap = function() {
     return elementMap;
 }
@@ -240,7 +244,7 @@ SDController.prototype.drawWindow = function() {
     drawMainThread();
 
     // draw the messages
-    for(var i = diagramStartMsg; i < diagramSizeY; i++){
+    for(var i = diagramStartMsg; i < diagramStartMsg + diagramSizeY; i++){
         if(i >= validMessages.length){
             break;
         }

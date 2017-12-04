@@ -3,6 +3,7 @@ export function Message(rawMessage){
     this.to = rawMessage.to;
     this.message = rawMessage.message;
     this.id = rawMessage.id;
+    this.count = rawMessage.count;
     this.valid = false;
     this.scale = 1;
     this.position = 0;

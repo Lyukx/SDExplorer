@@ -11,6 +11,7 @@ var displaySet;
 
 function initElements(objects, groups) {
     elementMap = new Map();
+    display = [];
     // Add objects
     objects.forEach(function(object) {
         var e = new Element(object);
