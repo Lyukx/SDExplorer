@@ -15,6 +15,9 @@ function Element(rawElement) {
     if(rawElement.type != undefined){ // objects
         this.displayName += (":" + rawElement.type);
     }
+    if(rawElement.displayName != undefined){
+        this.displayName = rawElement.displayName;
+    }
 
     // Grouping information
     this.parent = -1;
@@ -1607,10 +1610,10 @@ SDViewer.prototype.isMessageDisplayed = function(message){
 };
 
 SDViewer.prototype.locate = function(messageId, scaleX, scaleY){
-    // [elementIndex, messageIndex, elementPosition, messagePosition - 60]
-    var param = sdController.getIndexByMessageId(messageId);
-    if(param[0] != -1 && param[1] != -1){
-        moveViewBox(param[0], param[1], param[2], param[3], scaleX, scaleY);
+    // messagePosition is actually messagePosition - 60
+    var [elementIndex, messageIndex, elementPosition, messagePosition] = sdController.getIndexByMessageId(messageId);
+    if(elementIndex != -1 && messageIndex != -1){
+        moveViewBox(elementIndex, messageIndex, elementPosition, messagePosition, scaleX, scaleY);
         return true;
     }
     else{
@@ -1618,11 +1621,98 @@ SDViewer.prototype.locate = function(messageId, scaleX, scaleY){
     }
 };
 
+SDViewer.prototype.showNearBy = function(messageId) {
+    var [elementIndex, messageIndex, elementPosition, messagePosition] = sdController.getIndexByMessageId(messageId);
+    var elements = this.getElements();
+    var messages = this.getMessages();
+
+    var leftPointer = elementIndex - 1;
+    var rightPointer = elementIndex + 1;
+    var handled = new Set();
+    handled.add(elementIndex);
+    for(var i = 0; i < 100; i++){
+        if(messageIndex - i >= 0){
+            var leftMsg = messages[messageIndex - i];
+            if(!handled.has(leftMsg.from)){
+                if(leftMsg.from > elementIndex){
+                    swapIdWithId(leftMsg.from, elements[leftPointer]);
+                    leftPointer --;
+                }
+                else{
+                    swapIdWithId(leftMsg.from, elements[rightPointer]);
+                    rightPointer ++;
+                }
+                handled.add(leftMsg.from);
+            }
+            if(!handled.has(leftMsg.to)){
+                if(leftMsg.to > elementIndex){
+                    swapIdWithId(leftMsg.to, elements[leftPointer]);
+                    leftPointer --;
+                }
+                else{
+                    swapIdWithId(leftMsg.to, elements[rightPointer]);
+                    rightPointer ++;
+                }
+                handled.add(leftMsg.to);
+            }
+        }
+        if(messageIndex + i < messages.length){
+            var rightMsg = messages[messageIndex + i];
+            if(!handled.has(rightMsg.from)){
+                if(rightMsg.from > elementIndex){
+                    swapIdWithId(rightMsg.from, elements[leftPointer]);
+                    leftPointer --;
+                }
+                else{
+                    swapIdWithId(rightMsg.from, elements[rightPointer]);
+                    rightPointer ++;
+                }
+                handled.add(rightMsg.from);
+            }
+            if(!handled.has(rightMsg.to)){
+                if(rightMsg.to > elementIndex){
+                    swapIdWithId(rightMsg.to, elements[leftPointer]);
+                    leftPointer --;
+                }
+                else{
+                    swapIdWithId(rightMsg.to, elements[rightPointer]);
+                    rightPointer ++;
+                }
+                handled.add(rightMsg.to);
+            }
+        }
+    }
+
+    var result = [];
+    for(let element in elements){
+        if(!element.isGroup()){
+            result.push(element);
+        }
+    }
+
+    return result;
+};
+
+// 'id' is one element's id and 'element' is another element, this function swap the ids of 2 elements in Array 'elements'
+// Note that if anyone of the elements is a group, we should change the first object's id to make it work
+function swapIdWithId(id, element){
+    var tempId = element.id;
+    while(element.isGroup()){
+        element = elementMap$2.get(element.children[0]);
+    }
+    element.id = id;
+    var anotherElement = elementMap$2.get(id);
+    while(anotherElement.isGroup()){
+        anotherElement = elementMap$2.get(anotherElement.children[0]);
+    }
+    anotherElement.id = tempId;
+}
+
 SDViewer.prototype.getMessages = function() {
     return sdController.getMessages();
 };
 
-SDViewer.prototype.getElements= function() {
+SDViewer.prototype.getElements = function() {
     return sdController.getElements();
 };
 

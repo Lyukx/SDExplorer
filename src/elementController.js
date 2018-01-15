@@ -63,6 +63,17 @@ export default function ElementController(objects, groups){
     this.displaySet = displaySet;
 }
 
+ElementController.prototype.setElementOrder = function(newOrderedDisplay){
+    this.display = newOrderedDisplay;
+
+    // Decide the position of elements
+    var dist = PADDING;
+    for(var i = 0; i < display.length; i++){
+        display[i].x = dist;
+        dist += (display[i].width + PADDING);
+    }
+}
+
 ElementController.prototype.getGroupFoldInfo = function(){
     var groupFoldInfo = new Set();
     for(let element of display){

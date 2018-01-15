@@ -58,10 +58,10 @@ SDViewer.prototype.isMessageDisplayed = function(message){
 }
 
 SDViewer.prototype.locate = function(messageId, scaleX, scaleY){
-    // [elementIndex, messageIndex, elementPosition, messagePosition - 60]
-    var param = sdController.getIndexByMessageId(messageId);
-    if(param[0] != -1 && param[1] != -1){
-        moveViewBox(param[0], param[1], param[2], param[3], scaleX, scaleY);
+    // messagePosition is actually messagePosition - 60
+    var [elementIndex, messageIndex, elementPosition, messagePosition] = sdController.getIndexByMessageId(messageId);
+    if(elementIndex != -1 && messageIndex != -1){
+        moveViewBox(elementIndex, messageIndex, elementPosition, messagePosition, scaleX, scaleY);
         return true;
     }
     else{
@@ -69,11 +69,26 @@ SDViewer.prototype.locate = function(messageId, scaleX, scaleY){
     }
 }
 
+SDViewer.prototype.nearby = function(message) {
+    // With a folded group A[a,b,c], 'display' should be [...other, A, other...]
+    // With a unfolded group A[a,b,c], 'display' should be [...other, A, a, b, c, other...]
+    var display = this.getElements();
+    var messages = this.getMessages();
+    var initialElement = elementMap.get(message.from);
+    var initialMessageIndex = messages.indexOf(message);
+
+    var handled = new Set();
+    for(var i = 0; i < 100; i++) {
+        if(initl)
+
+    }
+}
+
 SDViewer.prototype.getMessages = function() {
     return sdController.getMessages();
 }
 
-SDViewer.prototype.getElements= function() {
+SDViewer.prototype.getElements = function() {
     return sdController.getElements();
 }
 
