@@ -8,28 +8,67 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
-    <div class="container">
-      <div class="row">
-        <div class="col-xl-6">
-          <div class="form-group">
-            <label for="comment">Traces (Syntax):</label>
-            <textarea class="form-control" rows="30" id="traces">
+    <!-- Custom styles for this template -->
+    <link href="./public/stylesheet/jumbotron.css" rel="stylesheet">
+
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+      <a class="navbar-brand" href="#">SDExplorer</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarDefault" aria-controls="navbarDefault" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarDefault">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item active">
+            <a class="nav-link" href="https://lyukx.github.io/SDExplorer/">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Document</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://lyukx.github.io/SDExplorer/playground.html">Playground<span class="sr-only">(current)</span></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Demostration</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <main role="main">
+      <div class="container">
+        <div class="row">
+          <div class="col-xl-6">
+            <div class="form-group">
+              <label for="comment">Traces (Syntax):</label>
+              <textarea class="form-control" rows="30" id="traces">
 A -> B :: foo()
 B -> C :: bar()
 C -> A :: hoge()
 return
 C -> D :: hogehoge()
+return
+C -> A :: hoge()
+return
+C -> D :: hogehoge()
+return
+C -> A :: hoge()
+return
+C -> D :: hogehoge()
+return
 
 Group1 :: C, D</textarea>
-            <button type="button" class="btn btn-primary btn-lg btn-block" id="generate">Generate</button>
+              <button type="button" class="btn btn-primary btn-lg btn-block" id="generate">Generate</button>
+              <button type="button" class="btn btn-success btn-lg btn-block" id="compress">Compress</button>
+            </div>
+          </div>
+          <div class="col-xl-6">
+            Sequence Diagram:
+            <div id="drawArea"></div>
           </div>
         </div>
-        <div class="col-xl-6">
-          Sequence Diagram:
-          <div id="drawArea"></div>
-        </div>
       </div>
-    </div>
+    </main>
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
@@ -146,12 +185,31 @@ Group1 :: C, D</textarea>
       return [objects, messages, groups];
     }
 
+    var objects, messages, groups;
+    var sequenceDiagram;
     $("#generate").click(function(){
       var traces = $("#traces").val();
-      var [objects, messages, groups] = parse(traces);
+      [objects, messages, groups] = parse(traces);
       console.log([objects, messages, groups]);
-      var sequenceDiagram = new sd.SDViewer(objects, groups, messages);
+      sequenceDiagram = new sd.SDViewer(objects, groups, messages);
     });
+
+    var compressFlag = false;
+    var origin;
+    $("#compress").click(function(){
+      if(!compressFlag){
+        origin = messages.slice();
+        var compressResult = sequenceDiagram.compress();
+        sequenceDiagram = new sd.SDViewer(objects, groups, compressResult[1]);
+        sequenceDiagram.setLoops(compressResult[0]);
+        compressFlag = true;
+      }
+      else{
+        messages = origin;
+        sequenceDiagram = new sd.SDViewer(objects, groups, messages);
+        compressFlag = false;
+      }
+    })
     </script>
   </body>
 </html>
