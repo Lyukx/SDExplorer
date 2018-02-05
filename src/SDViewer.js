@@ -79,8 +79,7 @@ SDViewer.prototype.nearby = function(message) {
 
     var handled = new Set();
     for(var i = 0; i < 100; i++) {
-        if(initl)
-
+        
     }
 }
 
