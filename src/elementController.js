@@ -7,7 +7,7 @@ var PADDING_GROUP = 10;
 
 var elementMap = []; // [id => element]
 var display = [];
-var displaySet;
+var displaySet = new Set();
 
 function initElements(objects, groups) {
     elementMap = new Map();
@@ -159,7 +159,7 @@ ElementController.prototype.foldUpdateStatus = function(groupId){
 }
 
 function updateDisplaySet(){
-    displaySet = new Set();
+    displaySet.clear();
     for(let element of display){
         if(!(element.isGroup() && !element.fold)){
             displaySet.add(element.id);

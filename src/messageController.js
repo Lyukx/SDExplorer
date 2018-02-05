@@ -17,8 +17,11 @@ export default function MessageController(messages, mainThreads, displaySet, ele
     totalMessages = [];
     for(let message of messages){
         // Filter invalid messages
-        totalMessages.push(new Message(message));
-        originMessages.set(message.id, {from:message.from, to:message.to});
+        var thisMessage = new Message(message);
+        totalMessages.push(thisMessage);
+        if(!thisMessage.isReturn()){
+          originMessages.set(thisMessage.id, {from:thisMessage.from, to:thisMessage.to});
+        }
     }
 
     // if the message is from/to elements in a grouped group, change the from/to attribute
@@ -124,7 +127,7 @@ function updateStatus() {
     }
 
     // Decide the position and scale of messages
-    validMessages = [];
+    validMessages.length = 0;
     var enabledMessages = [];
     var activeStack = new ActiveStack();
     var messageMap = new Map(); // id => message
@@ -142,8 +145,8 @@ function updateStatus() {
             thisMessage.fromOffset = activeStack.getOffset(thisMessage.from);
             thisMessage.toOffset = activeStack.getOffset(thisMessage.to);
 
-            if(!thisMsg.valid){
-                enabledMessages.push(thisMsg);
+            if(!thisMessage.valid){
+                enabledMessages.push(thisMessage);
             }
             thisMessage.valid = true;
             validMessages.push(thisMessage);
@@ -169,7 +172,6 @@ function updateStatus() {
         message.scale = (distance + 1) / 2;
         count ++;
     }
-
     return enabledMessages;
 }
 

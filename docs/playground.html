@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <div class="container">
+      <div class="row">
+        <div class="col-xl-6">
+          <div class="form-group">
+            <label for="comment">Traces (Syntax):</label>
+            <textarea class="form-control" rows="30" id="traces">
+A -> B :: foo()
+B -> C :: bar()
+C -> A :: hoge()
+return
+C -> D :: hogehoge()
+
+Group1 :: C, D</textarea>
+            <button type="button" class="btn btn-primary btn-lg btn-block" id="generate">Generate</button>
+          </div>
+        </div>
+        <div class="col-xl-6">
+          Sequence Diagram:
+          <div id="drawArea"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+    <!-- d3.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+
+    <!-- SDExplorer and configure js file-->
+    <script src="./public/javascript/sd.js"></script>
+    <script src="./public/javascript/setupsvg.js"></script>
+
+    <!-- Playground function code -->
+    <script>
+    var ERROR = 0;
+    var TRACE = 1;
+    var GROUP = 2;
+    var RETURN = 3;
+    // Return type: [TypeCode, tokens]
+    function typeCheck(oneLine){
+      if(oneLine.indexOf("->") != -1){
+        var tokens = oneLine.split("->");
+        if(tokens.length != 2)
+          return ERROR;
+        var secondTokens = tokens[1].split("::");
+        if(secondTokens.length != 2)
+          return ERROR;
+        return [TRACE, [tokens[0]].concat(secondTokens)];
+      }
+      else if(oneLine.indexOf("::") != -1){
+        var tokens = oneLine.split("::");
+        if(tokens.length != 2)
+          return ERROR;
+        var objects = tokens[1].split(",");
+        return [GROUP, [tokens[0]].concat(objects)];
+      }
+      else if(oneLine == "return"){
+        return [RETURN, []];
+      }
+      else{
+        return [ERROR, []];
+      }
+    }
+
+    function parse(tracesText){
+      var objectMap = new Map();
+      var groups = [];
+      var messages = [];
+      var idCount = 0;
+      var activeStack = [];
+      var messageCount = 0;
+
+      var lines = tracesText.split("\n");
+      for(var i = 0; i < lines.length; i++){
+        var thisLine = lines[i];
+        thisLine = thisLine.replace(/\s+/g,""); // Remove all spaces
+        var [typeCode, tokens] = typeCheck(thisLine);
+
+        if(typeCode == GROUP){
+          var objects = tokens.slice(1);
+          for(var j = 0; j < objects.length; j++){
+            if(!objectMap.has(objects[j])){
+              objectMap.set(objects[j], idCount);
+              idCount ++;
+            }
+            objects[j] = objectMap.get(objects[j]);
+          }
+          groups.push({id: idCount, name: tokens[0], objs: objects});
+          idCount ++;
+        }
+        else if(typeCode == TRACE){
+          if(!objectMap.has(tokens[0])){
+            objectMap.set(tokens[0], idCount);
+            idCount ++;
+          }
+          if(!objectMap.has(tokens[1])){
+            objectMap.set(tokens[1], idCount);
+            idCount ++;
+          }
+
+          var from = objectMap.get(tokens[0]);
+          var to = objectMap.get(tokens[1]);
+          var thisMessage = {id: messageCount, from: from, to: to, message: tokens[2]};
+          messageCount ++;
+          messages.push(thisMessage);
+          activeStack.push(thisMessage);
+        }
+        else if(typeCode == RETURN){
+          var returnMessage = Object.assign({}, activeStack.pop());
+          returnMessage.to = -1;
+          returnMessage.message = "";
+          messages.push(returnMessage);
+        }
+        else{
+          console.log("One syntax error detected.");
+          continue;
+        }
+      }
+
+      var objects = [];
+      for(let entry of objectMap.entries()){
+        objects.push({id: entry[1], name: entry[0]});
+      }
+
+      while(activeStack.length != 0){
+        var returnMessage = Object.assign({}, activeStack.pop());
+        returnMessage.to = -1;
+        returnMessage.message = "";
+        messages.push(returnMessage);
+      }
+
+      return [objects, messages, groups];
+    }
+
+    $("#generate").click(function(){
+      var traces = $("#traces").val();
+      var [objects, messages, groups] = parse(traces);
+      console.log([objects, messages, groups]);
+      var sequenceDiagram = new sd.SDViewer(objects, groups, messages);
+    });
+    </script>
+  </body>
+</html>

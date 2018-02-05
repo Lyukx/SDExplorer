@@ -38,7 +38,7 @@ var PADDING_GROUP$1 = 10;
 
 var elementMap$1 = []; // [id => element]
 var display$1 = [];
-var displaySet$1;
+var displaySet$1 = new Set();
 
 function initElements(objects, groups) {
     elementMap$1 = new Map();
@@ -190,7 +190,7 @@ ElementController.prototype.foldUpdateStatus = function(groupId){
 };
 
 function updateDisplaySet(){
-    displaySet$1 = new Set();
+    displaySet$1.clear();
     for(let element of display$1){
         if(!(element.isGroup() && !element.fold)){
             displaySet$1.add(element.id);
@@ -235,8 +235,11 @@ function MessageController(messages, mainThreads, displaySet, elementMap){
     totalMessages = [];
     for(let message of messages){
         // Filter invalid messages
-        totalMessages.push(new Message(message));
-        originMessages.set(message.id, {from:message.from, to:message.to});
+        var thisMessage = new Message(message);
+        totalMessages.push(thisMessage);
+        if(!thisMessage.isReturn()){
+          originMessages.set(thisMessage.id, {from:thisMessage.from, to:thisMessage.to});
+        }
     }
 
     // if the message is from/to elements in a grouped group, change the from/to attribute
@@ -342,7 +345,7 @@ function updateStatus() {
     }
 
     // Decide the position and scale of messages
-    validMessages$1 = [];
+    validMessages$1.length = 0;
     var enabledMessages = [];
     var activeStack = new ActiveStack();
     var messageMap = new Map(); // id => message
@@ -360,8 +363,8 @@ function updateStatus() {
             thisMessage.fromOffset = activeStack.getOffset(thisMessage.from);
             thisMessage.toOffset = activeStack.getOffset(thisMessage.to);
 
-            if(!thisMsg.valid){
-                enabledMessages.push(thisMsg);
+            if(!thisMessage.valid){
+                enabledMessages.push(thisMessage);
             }
             thisMessage.valid = true;
             validMessages$1.push(thisMessage);
@@ -387,7 +390,6 @@ function updateStatus() {
         message.scale = (distance + 1) / 2;
         count ++;
     }
-
     return enabledMessages;
 }
 
@@ -1367,6 +1369,7 @@ function drawMainThread() {
         var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
         var y = MSG_HEIGHT * 0.75;
         var validNum = validMessages.length;
+        console.log(validNum);
         var h = validNum * MSG_HEIGHT;
         d3.select(".mainthread-layout").append("rect")
                 .attr("class", "mainThreadActiveBar")
