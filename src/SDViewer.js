@@ -124,12 +124,15 @@ SDViewer.prototype.compress = function() {
     sdController.setMessages(resultMessages);
     sdController.setLoops(loopDetector.result[0]);
 
+    sdController.disableFoldAndUnfold();
+
     return [loopDetector.result[0], resultMessages];
 }
 
 SDViewer.prototype.decompress = function() {
     sdController.setMessages(this.rawMessageBeforeComress);
     d3.select(".loop-layout").remove();
+    sdController.enableFoldAndUnfold();
 }
 
 SDViewer.prototype.setLoops = function(loops) {

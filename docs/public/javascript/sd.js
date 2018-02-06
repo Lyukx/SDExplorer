@@ -826,6 +826,31 @@ SDController.prototype.updateWithoutAnimation = function(unfoldSet) {
     }
 };
 
+SDController.prototype.disableFoldAndUnfold = function() {
+    d3.selectAll(".element")
+      .each(function(element){
+        if(element.isGroup()){
+            d3.select(this).on("click", null);
+        }
+      });
+};
+
+SDController.prototype.enableFoldAndUnfold = function() {
+    d3.selectAll(".element")
+      .each(function(element){
+        if(element.isGroup()){
+            d3.select(this).on("click", function(element){
+                if(element.fold){
+                    unfold(element);
+                }
+                else{
+                    foldAll(element);
+                }
+            });
+        }
+      });
+};
+
 /********************************************************************************************************************
 Rest part is the 'render' part, which contains functions to draw / modify elements on the SVG.
 *********************************************************************************************************************/
@@ -1598,8 +1623,8 @@ var oldScale;
 var displaySet$2;
 var elementMap$2;
 
-function SDViewer(objects, groups, messages) {
-    setSVG();
+function SDViewer(objects, groups, messages, drawAreaId) {
+    setSVG(drawAreaId);
     sdController = new SDController(objects, groups, messages);
     // Save the raw message data in order to resume from compression
     this.rawMessageBeforeComress = messages;
@@ -1702,12 +1727,15 @@ SDViewer.prototype.compress = function() {
     sdController.setMessages(resultMessages);
     sdController.setLoops(loopDetector.result[0]);
 
+    sdController.disableFoldAndUnfold();
+
     return [loopDetector.result[0], resultMessages];
 };
 
 SDViewer.prototype.decompress = function() {
     sdController.setMessages(this.rawMessageBeforeComress);
     d3.select(".loop-layout").remove();
+    sdController.enableFoldAndUnfold();
 };
 
 SDViewer.prototype.setLoops = function(loops) {
@@ -1768,7 +1796,7 @@ function keepElementTop() {
         .attr("transform", "translate(0," + (viewBoxY - sdController.top) + ")");
 }
 
-function setSVG(){
+function setSVG(drawAreaId){
     // Set svg zoomable and draggable
     width = window.innerWidth;
     height = window.innerHeight - 100;
@@ -1779,7 +1807,7 @@ function setSVG(){
     // Clear drawArea
     d3.select("svg").remove();
 
-    svg = d3.select("#drawArea")
+    svg = d3.select("#" + drawAreaId)
                     .append("svg")
                     .attr("width", width)
                     .attr("height", height)

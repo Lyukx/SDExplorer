@@ -191,24 +191,21 @@ Group1 :: C, D</textarea>
       var traces = $("#traces").val();
       [objects, messages, groups] = parse(traces);
       console.log([objects, messages, groups]);
-      sequenceDiagram = new sd.SDViewer(objects, groups, messages);
+      sequenceDiagram = new sd.SDViewer(objects, groups, messages, "drawArea");
     });
 
     var compressFlag = false;
-    var origin;
     $("#compress").click(function(){
       if(!compressFlag){
-        origin = messages.slice();
-        var compressResult = sequenceDiagram.compress();
-        //sequenceDiagram = new sd.SDViewer(objects, groups, compressResult[1]);
-        console.log(compressResult);
-        //sequenceDiagram.setLoops(compressResult[0]);
+        sequenceDiagram.compress();
         compressFlag = true;
+        $("#compress").html("Decompress (fold/unfold is now disabled)");
       }
       else{
         messages = origin;
         sequenceDiagram.decompress();
         compressFlag = false;
+        $("#compress").html("Compress")
       }
     })
     </script>

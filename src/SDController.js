@@ -305,6 +305,31 @@ SDController.prototype.updateWithoutAnimation = function(unfoldSet) {
     }
 }
 
+SDController.prototype.disableFoldAndUnfold = function() {
+    d3.selectAll(".element")
+      .each(function(element){
+        if(element.isGroup()){
+            d3.select(this).on("click", null);
+        }
+      });
+}
+
+SDController.prototype.enableFoldAndUnfold = function() {
+    d3.selectAll(".element")
+      .each(function(element){
+        if(element.isGroup()){
+            d3.select(this).on("click", function(element){
+                if(element.fold){
+                    unfold(element);
+                }
+                else{
+                    foldAll(element);
+                }
+            });
+        }
+      });
+}
+
 /********************************************************************************************************************
 Rest part is the 'render' part, which contains functions to draw / modify elements on the SVG.
 *********************************************************************************************************************/
