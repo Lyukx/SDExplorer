@@ -23,6 +23,8 @@ var elementMap;
 export default function SDViewer(objects, groups, messages) {
     setSVG();
     sdController = new SDController(objects, groups, messages);
+    // Save the raw message data in order to resume from compression
+    this.rawMessageBeforeComress = messages;
 
     sdController.setDiagramSize(diagramSizeX, diagramSizeY);
     sdController.setDiagramDisplayHead(headX, headY);
@@ -79,7 +81,7 @@ SDViewer.prototype.nearby = function(message) {
 
     var handled = new Set();
     for(var i = 0; i < 100; i++) {
-        
+
     }
 }
 
@@ -119,7 +121,15 @@ SDViewer.prototype.compress = function() {
             resultMessages.push(message);
         }
     }
+    sdController.setMessages(resultMessages);
+    sdController.setLoops(loopDetector.result[0]);
+
     return [loopDetector.result[0], resultMessages];
+}
+
+SDViewer.prototype.decompress = function() {
+    sdController.setMessages(this.rawMessageBeforeComress);
+    d3.select(".loop-layout").remove();
 }
 
 SDViewer.prototype.setLoops = function(loops) {

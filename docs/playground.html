@@ -19,13 +19,13 @@
 
       <div class="collapse navbar-collapse" id="navbarDefault">
         <ul class="navbar-nav mr-auto">
-          <li class="nav-item active">
+          <li class="nav-item">
             <a class="nav-link" href="https://lyukx.github.io/SDExplorer/">Home</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#">Document</a>
           </li>
-          <li class="nav-item">
+          <li class="nav-item  active">
             <a class="nav-link" href="https://lyukx.github.io/SDExplorer/playground.html">Playground<span class="sr-only">(current)</span></a>
           </li>
           <li class="nav-item">
@@ -200,13 +200,14 @@ Group1 :: C, D</textarea>
       if(!compressFlag){
         origin = messages.slice();
         var compressResult = sequenceDiagram.compress();
-        sequenceDiagram = new sd.SDViewer(objects, groups, compressResult[1]);
-        sequenceDiagram.setLoops(compressResult[0]);
+        //sequenceDiagram = new sd.SDViewer(objects, groups, compressResult[1]);
+        console.log(compressResult);
+        //sequenceDiagram.setLoops(compressResult[0]);
         compressFlag = true;
       }
       else{
         messages = origin;
-        sequenceDiagram = new sd.SDViewer(objects, groups, messages);
+        sequenceDiagram.decompress();
         compressFlag = false;
       }
     })

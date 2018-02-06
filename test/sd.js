@@ -227,7 +227,7 @@ var totalMessages; // Total messages (from / to may be changed by grouping objec
 
 var rawValidMessages; // Used for compress
 
-var mainThreadSet;
+var mainThreadSet$1;
 
 function MessageController(messages, mainThreads, displaySet, elementMap){
     validMessages$1 = [];
@@ -271,7 +271,7 @@ function MessageController(messages, mainThreads, displaySet, elementMap){
         }
     }
 
-    mainThreadSet = mainThreads;
+    mainThreadSet$1 = mainThreads;
     updateStatus();
 
     this.validMessages = validMessages$1;
@@ -472,7 +472,7 @@ function updateStatus(){
 function ActiveStack(){
     this.stack = [];
     this.offset = new Map();
-    for (let mainThread of mainThreadSet){
+    for (let mainThread of mainThreadSet$1){
         this.offset.set(mainThread, 0);
     }
 }
@@ -526,6 +526,7 @@ var elementController;
 var messageController;
 
 var mainThread;
+var mainThreadSet;
 
 var display;
 var elementMap;
@@ -542,7 +543,7 @@ function SDController(objects, groups, messages){
     displaySet = elementController.displaySet;
 
     // TODO add multi-thread
-    var mainThreadSet = new Set([0]);
+    mainThreadSet = new Set([0]);
     var temp = elementMap.get(0);
     while(temp.parent != -1){
         mainThreadSet.add(temp.parent);
@@ -596,6 +597,20 @@ SDController.prototype.getRawMessages = function(){
 SDController.prototype.setLoops = function(loops){
     loopList = loops;
     drawLoops();
+};
+
+SDController.prototype.setMessages = function(messages) {
+    messageController = new MessageController(messages, mainThreadSet, displaySet, elementMap);
+    validMessages = messageController.validMessages;
+    d3.select(".messages-layout").remove();
+    d3.select("svg")
+        .append("g")
+        .attr("class", "messages-layout");
+    for(let message of validMessages){
+        drawMessage(message);
+    }
+    updateBaseLine();
+    updateMainThread();
 };
 
 function unfold(group){
@@ -1286,10 +1301,7 @@ function updateMessages(enabled){
                 .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
         });
 
-    var msgNum = sizeSetted && diagramStartMsg + diagramSizeY < validMessages.length ? diagramSizeY : validMessages.length;
-    var y2 = msgNum * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
-    d3.selectAll(".baseLine")
-        .attr("y2", y2);
+    updateBaseLine();
 
     updateMainThread();
 }
@@ -1352,10 +1364,7 @@ function updateMessagesWithoutAnimation(enabled){
                 .attr({x: -PADDING, y: -PADDING, width: 2 * PADDING + Math.abs(x2 - x1), height: 2 * PADDING + h2})
                 .attr("transform", "translate(" + Math.min(x1,x2) + "," + y2 + ")");
         });
-    var msgNum = sizeSetted && diagramStartMsg + diagramSizeY < validMessages.length ? diagramSizeY : validMessages.length;
-    var y2 = msgNum * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT;
-    d3.selectAll(".baseLine")
-        .attr("y2", y2);
+    updateBaseLine();
 
     updateMainThread();
 }
@@ -1369,7 +1378,6 @@ function drawMainThread() {
         var x = mainThreadObj.x + mainThreadObj.width / 2 - MSG_ACTIVE_WIDTH / 2;
         var y = MSG_HEIGHT * 0.75;
         var validNum = validMessages.length;
-        console.log(validNum);
         var h = validNum * MSG_HEIGHT;
         d3.select(".mainthread-layout").append("rect")
                 .attr("class", "mainThreadActiveBar")
@@ -1383,6 +1391,13 @@ function drawMainThread() {
 function updateMainThread(){
     d3.selectAll(".mainThreadActiveBar").remove();
     drawMainThread();
+}
+
+function updateBaseLine(){
+    var msgNum = sizeSetted && diagramStartMsg + diagramSizeY < validMessages.length ? diagramSizeY : validMessages.length;
+    var y2 = msgNum * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
+    d3.selectAll(".baseLine")
+        .attr("y2", y2);
 }
 
 function drawLoops(){
@@ -1586,6 +1601,8 @@ var elementMap$2;
 function SDViewer(objects, groups, messages) {
     setSVG();
     sdController = new SDController(objects, groups, messages);
+    // Save the raw message data in order to resume from compression
+    this.rawMessageBeforeComress = messages;
 
     sdController.setDiagramSize(diagramSizeX$1, diagramSizeY$1);
     sdController.setDiagramDisplayHead(headX, headY);
@@ -1642,7 +1659,7 @@ SDViewer.prototype.nearby = function(message) {
 
     var handled = new Set();
     for(var i = 0; i < 100; i++) {
-        
+
     }
 };
 
@@ -1682,7 +1699,15 @@ SDViewer.prototype.compress = function() {
             resultMessages.push(message);
         }
     }
+    sdController.setMessages(resultMessages);
+    sdController.setLoops(loopDetector.result[0]);
+
     return [loopDetector.result[0], resultMessages];
+};
+
+SDViewer.prototype.decompress = function() {
+    sdController.setMessages(this.rawMessageBeforeComress);
+    d3.select(".loop-layout").remove();
 };
 
 SDViewer.prototype.setLoops = function(loops) {
