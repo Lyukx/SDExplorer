@@ -20,8 +20,8 @@ var isMouseDown, oldScale;
 var displaySet;
 var elementMap;
 
-export default function SDViewer(objects, groups, messages) {
-    setSVG();
+export default function SDViewer(objects, groups, messages, drawAreaId) {
+    setSVG(drawAreaId);
     sdController = new SDController(objects, groups, messages);
     // Save the raw message data in order to resume from compression
     this.rawMessageBeforeComress = messages;
@@ -190,7 +190,7 @@ function keepElementTop() {
         .attr("transform", "translate(0," + (viewBoxY - sdController.top) + ")");
 }
 
-function setSVG(){
+function setSVG(drawAreaId){
     // Set svg zoomable and draggable
     width = window.innerWidth;
     height = window.innerHeight - 100;
@@ -201,7 +201,7 @@ function setSVG(){
     // Clear drawArea
     d3.select("svg").remove();
 
-    svg = d3.select("#drawArea")
+    svg = d3.select("#" + drawAreaId)
                     .append("svg")
                     .attr("width", width)
                     .attr("height", height)
