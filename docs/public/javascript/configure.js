@@ -28,17 +28,13 @@ function setupJquery(svg){
     });
 
     var compressed = false;
-    //var origin;
     $("#compress-btn").click(function(){
         if(!compressed){
-            origin = messages.slice();
-            var result = svg.compress();
-            svg = new sd.SDViewer(objects, groups, result[1]);
-            svg.setLoops(result[0]);
+            svg.compress();
             compressed = true;
         }
         else{
-            svg = new sd.SDViewer(objects, groups, origin);
+            svg.decompress();
             compressed = false;
         }
     });
