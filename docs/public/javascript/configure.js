@@ -28,7 +28,7 @@ function setupJquery(svg){
     });
 
     var compressed = false;
-    var origin;
+    //var origin;
     $("#compress-btn").click(function(){
         if(!compressed){
             origin = messages.slice();
