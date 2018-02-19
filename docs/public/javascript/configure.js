@@ -29,14 +29,17 @@ function setupJquery(svg){
 
     var compressed = false;
     $("#compress-btn").click(function(){
-        if(!compressed){
-            svg.compress();
-            compressed = true;
-        }
-        else{
-            svg.decompress();
-            compressed = false;
-        }
+      if(!compressed){
+        //var time = new Date().getTime();
+        svg.compress();
+        compressed = true;
+        //console.log(new Date().getTime() - time);
+      }
+      else{
+        //messages = origin;
+        svg.decompress();
+        compressed = false;
+      }
     });
 
     $(".close").click(function(){
@@ -67,14 +70,30 @@ function setupJquery(svg){
 
     $(".do-filter").click(function(){
         var filterList = [];
+        var filterSet = new Set();
+        var postList = [];
         for(var i = 0; i <= filterCount; i++){
             var object = objectMap.get($("#filter-" + i).val());
             if(object != undefined){
                 filterList.push(object);
+                filterSet.add(object.id);
+                postList.push(object.id);
             }
         }
-        console.log(filterList);
-        svg = new sd.SDViewer(filterList, [], messages);
+        console.log(messages);
+/*
+        $.post("http://localhost:3000/searchMessage", {filterList: postList}, function(result){
+            console.log(result);
+            var filtered = [];
+            var i = 0;
+            for(var count = 0; count < 5000 && i < result.length; count++){
+               if(filterSet.has(result[i].from) && filterSet.has(result[i].to)){
+                  filtered.push(result[i]);
+               }
+            }
+            svg = new sd.SDViewer(filterList, [], result, "drawArea");
+        });*/
+        svg = new sd.SDViewer(filterList, [], messages, "drawArea");
     })
 
     var substringMatcher = function(strs) {
@@ -119,43 +138,6 @@ function setupJquery(svg){
             to = objectMap.get($("#search-to").val()).id;
         }
         var message = $("#search-message").val();
-
-        // This is the live-demo code
-        var data = [];
-        for(var i = 0; i < messages.length; i++){
-            if(messages[i].from == from && messages[i].to == to && messages[i].message.indexOf(message) != -1){
-                data.push(messages[i]);
-            }
-        }
-        var temp = [];
-        searchResultMap = new Map();
-        for(var i = 0; i < data.length; i++){
-            if(svg.isMessageDisplayed(data[i])){
-                temp.push(data[i]);
-                searchResultMap.set(data[i].id, data[i].count);
-            }
-        }
-        data = temp;
-        var totalPageNum = Math.ceil(data.length / 10)
-        var result = "Find " + data.length + " messages. Display 1/" + totalPageNum + " page. "
-
-        $("#search-result").empty();
-
-        $("#search-result").append($("<li role='presentation'></li>").text(result)
-                            .append("<input id='search-result-goto'/>")
-                            .append("<button id='do-search-result-goto'>Goto</button>"));
-
-        $("#do-search-result-goto").click(function(){
-            var page = parseInt($("#search-result-goto").val())
-            if(page > 0 && page <= totalPageNum){
-                displaySearchResult(page, 10, data);
-            }
-        });
-
-        displaySearchResult(1, 10, data);
-
-        // This is the code with database.
-        /*
         var query = "messages?message[from]=" + from + "&message[to]=" + to + "&message[message]=" + message;
         var urlSearch = "http://localhost:3000/searchMessage/" + query;
 
@@ -190,7 +172,6 @@ function setupJquery(svg){
 
             displaySearchResult(1, 10, data);
         });
-        */
     });
 
     function displaySearchResult(pageNum, pageSize, data){
@@ -237,7 +218,7 @@ function switchPage(messageId, svg){
     d3.json(urlMsg, function(err, data) {
         messages = data;
         var param = svg.getContext();
-        svg = new sd.SDViewer(objects, groups, messages);
+        svg = new sd.SDViewer(objects, groups, messages, "drawArea");
         var success = svg.locate(messageId, param[4], param[5]);
         if(success){
             $('.drawer').drawer('hide');
@@ -246,10 +227,6 @@ function switchPage(messageId, svg){
             console.log("error!");
         }
     });
-}
-
-function showNearBy(messageId, svg){
-
 }
 
 function useDotIfNameTooLong(name){
@@ -261,9 +238,9 @@ function useDotIfNameTooLong(name){
     }
 }
 
-var urlObj = "./public/json/object.json";
-var urlGrp = "./public/json/group.json";
-var urlMsg = "./public/json/message.json";
+var urlObj = "http://localhost:3000/fetchObject";
+var urlGrp = "http://localhost:3000/fetchGroup";
+var urlMsg = "http://localhost:3000/fetchMessage/" + 0;
 var objects;
 var groups;
 var messages;
