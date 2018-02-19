@@ -4,9 +4,10 @@
 ## Resources:
 - [Homepage](https://lyukx.github.io/SDExplorer/)
 - [Playground](https://lyukx.github.io/SDExplorer/playground.html)
+- [Template](https://github.com/Lyukx/template-of-SDExplorer)
 - [Wiki](https://github.com/Lyukx/SDExplorer/wiki)
   - [Quick Start](https://github.com/Lyukx/SDExplorer/wiki/Quick-Start)
-  - [API Reference](https://github.com/Lyukx/SDExplorer/wiki/API-Reference)
+  - [Link to Database](https://github.com/Lyukx/SDExplorer/wiki/Link-to-Database)
 
 ## Requirement
 Please import [d3.js](https://d3js.org/) while using **SDExplorer**.
