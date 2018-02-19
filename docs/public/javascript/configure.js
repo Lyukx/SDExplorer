@@ -267,7 +267,7 @@ function useDotIfNameTooLong(name){
 
 var urlObj = "./public/json/object.json";
 var urlGrp = "./public/json/group.json";
-var urlMsg = "./public/json/search.json";
+var urlMsg = "./public/json/message.json";
 var objects;
 var groups;
 var messages;
