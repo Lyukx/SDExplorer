@@ -42,23 +42,24 @@
           <div class="col-xl-6">
             <div class="form-group">
               <label for="comment">Traces (<a href="https://github.com/Lyukx/SDExplorer/wiki/Playground#trace-syntax">Syntax</a>):</label>
-              <textarea class="form-control" rows="30" id="traces">
+              <textarea class="form-control" rows="20" id="traces">
 A -> B :: foo()
 B -> C :: bar()
-C -> A :: hoge()
+C -> A :: fun1()
 return
-C -> D :: hogehoge()
+C -> D :: fun2()
 return
-C -> A :: hoge()
+C -> A :: fun1()
 return
-C -> D :: hogehoge()
+C -> D :: fun2()
 return
-C -> A :: hoge()
+C -> A :: fun1()
 return
-C -> D :: hogehoge()
+C -> D :: fun1()
 return
 
-Group1 :: C, D</textarea>
+Group_C_D :: C, D
+Group_B_C_D :: B, Group_C_D</textarea>
               <button type="button" class="btn btn-primary btn-lg btn-block" id="generate">Generate</button>
               <button type="button" class="btn btn-success btn-lg btn-block" id="compress">Compress</button>
             </div>
@@ -140,6 +141,7 @@ Group1 :: C, D</textarea>
             objects[j] = objectMap.get(objects[j]);
           }
           groups.push({id: idCount, name: tokens[0], objs: objects});
+          objectMap.set(tokens[0], idCount);
           idCount ++;
         }
         else if(typeCode == TRACE){
@@ -188,11 +190,15 @@ Group1 :: C, D</textarea>
 
     var objects, messages, groups;
     var sequenceDiagram;
-    $("#generate").click(function(){
+    function generate(){
       var traces = $("#traces").val();
       [objects, messages, groups] = parse(traces);
       console.log([objects, messages, groups]);
       sequenceDiagram = new sd.SDViewer(objects, groups, messages, "drawArea");
+    }
+
+    $("#generate").click(function(){
+      generate();
     });
 
     var compressFlag = false;
@@ -208,7 +214,11 @@ Group1 :: C, D</textarea>
         compressFlag = false;
         $("#compress").html("Compress")
       }
-    })
+    });
+
+    $(document).ready(function() {
+      generate();
+    });
     </script>
   </body>
 </html>
