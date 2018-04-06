@@ -9,6 +9,16 @@
   - [Quick Start](https://github.com/Lyukx/SDExplorer/wiki/Quick-Start)
   - [Link to Database](https://github.com/Lyukx/SDExplorer/wiki/Link-to-Database)
 
+## Publication
+SDExplorer will attend [ICPC 2018](https://conf.researchr.org/home/icpc-2018) Tool Demonstration track. Please check the paper below:
+
+[SDExplorer: a generic toolkit for smoothly exploring massive-scale sequence diagram](https://conf.researchr.org/event/icpc-2018/icpc-2018-tool-demonstration-sdexplorer-a-generic-toolkit-for-smoothly-exploring-massive-scale-sequence-diagram)
+
+- Kaixie Lyu, Kunihiro Noda, Takashi Kobayashi
+
+
+You can get a preprint version [here](https://lyukx.github.io/SDExplorer/paper/SDExplorer_paper.pdf).
+
 ## Requirement
 Please import [d3.js](https://d3js.org/) while using **SDExplorer**.
 
