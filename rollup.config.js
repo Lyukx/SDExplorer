@@ -5,5 +5,5 @@ export default {
   format: "umd",
   moduleName: "sd",
   plugins: [node()],
-  dest: "./test/sd.js"
+  dest: "./dest/sd.js"
 };

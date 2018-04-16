@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "prepublish": "rollup -c && uglifyjs ./test/sd.js -c -m -o ./test/sd.min.js",
+    "build": "rollup -c && uglifyjs ./dest/sd.js -c -m -o ./dest/sd.min.js",
     "cleanup": "rm ./test/sd.js && rm ./test/sd.min.js"
   },
   "devDependencies": {
