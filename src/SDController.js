@@ -81,10 +81,7 @@ SDController.prototype.setLoops = function(loops){
 SDController.prototype.setMessages = function(messages) {
     messageController = new MessageController(messages, mainThreadSet, displaySet, elementMap);
     validMessages = messageController.validMessages;
-    d3.select(".messages-layout").remove();
-    d3.select("svg")
-        .append("g")
-        .attr("class", "messages-layout");
+    d3.select(".messages-layout").selectAll("*").remove();
     for(let message of validMessages){
         drawMessage(message);
     }
@@ -907,10 +904,7 @@ function updateBaseLine(){
 }
 
 function drawLoops(){
-    d3.select(".loop-layout").remove();
-    d3.select("svg")
-        .append("g")
-        .attr("class", "loop-layout");
+    d3.select(".loop-layout").selectAll("*").remove();
 
     var messageDic = new Map();
     for(let message of validMessages){

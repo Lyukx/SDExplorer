@@ -131,7 +131,7 @@ SDViewer.prototype.compress = function() {
 
 SDViewer.prototype.decompress = function() {
     sdController.setMessages(this.rawMessageBeforeComress);
-    d3.select(".loop-layout").remove();
+    d3.select(".loop-layout").selectAll("*").remove();
     sdController.enableFoldAndUnfold();
 }
 
