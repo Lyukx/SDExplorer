@@ -354,15 +354,15 @@ function generateLayout() {
 
     d3.select("svg")
         .append("g")
-        .attr("class", "loop-layout");
-
-    d3.select("svg")
-        .append("g")
         .attr("class", "mainthread-layout");
 
     d3.select("svg")
         .append("g")
         .attr("class", "messages-layout");
+
+    d3.select("svg")
+        .append("g")
+        .attr("class", "loop-layout");
 
     d3.select("svg")
         .append("g")
@@ -946,10 +946,18 @@ function drawLoops(){
         var h = messagesInLoop.length * MSG_HEIGHT;
         var temp = d3.select(".loop-layout").append("g");
 
-        temp.append("rect")
-            .attr({x: 0, y: 0, width: max - min, height: h})
-            .style("stroke", "blue")
-            .style("fill-opacity", "0");
+        temp.append("line")
+            .attr({x1: 0, y1: 0, x2: max - min, y2: 0})
+            .style("stroke", "blue");
+        temp.append("line")
+            .attr({x1: 0, y1: h, x2: max - min, y2: h})
+            .style("stroke", "blue");
+        temp.append("line")
+            .attr({x1: 0, y1: 0, x2: 0, y2: h})
+            .style("stroke", "blue");
+        temp.append("line")
+            .attr({x1: max - min, y1: 0, x2: max - min, y2: h})
+            .style("stroke", "blue");
 
         temp.append("rect")
             .attr({x: 0, y: 0, width: 45, height: 20})
