@@ -20,11 +20,23 @@ var isMouseDown, oldScale;
 var displaySet;
 var elementMap;
 
-export default function SDViewer(objects, groups, messages, drawAreaId) {
-    setSVG(drawAreaId);
-    sdController = new SDController(objects, groups, messages);
+export default function SDViewer(parameters) {
+  if(parameters.objects == undefined || parameters.messages == undefined){
+    console.log("Error! Objects or messages undefined!");
+    return;
+  }
+
+  if(parameters.groups == undefined){
+    parameters.groups = [];
+  }
+  if(parameters.loops == undefined){
+    parameters.loops = [];
+  }
+
+    setSVG(parameters.drawAreaId);
+    sdController = new SDController(parameters.objects, parameters.groups, parameters.messages);
     // Save the raw message data in order to resume from compression
-    this.rawMessageBeforeComress = messages;
+    this.rawMessageBeforeComress = parameters.messages;
 
     sdController.setDiagramSize(diagramSizeX, diagramSizeY);
     sdController.setDiagramDisplayHead(headX, headY);
