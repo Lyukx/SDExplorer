@@ -1,15 +1,26 @@
 export default function Logger(){}
 
+// Output interface
 Logger.prototype.output = function(log){
-  //console.log(log)
+  console.log(log);
 }
 
 Logger.prototype.logFold = function(groupInfo){
-  var log = "Fold group: " + groupInfo.id + "@" + groupInfo.displayName
+  var time = Date();
+  var log = {
+    time: time,
+    type: "Fold",
+    param: [groupInfo.id, groupInfo.displayName]
+  };
   this.output(log)
 }
 
 Logger.prototype.logUnfold = function(groupInfo){
-  var log = "Unfold group: " + groupInfo.id + "@" + groupInfo.displayName
+  var time = Date();
+  var log = {
+    time: time,
+    type: "Unfold",
+    param: [groupInfo.id, groupInfo.displayName]
+  }
   this.output(log)
 }
