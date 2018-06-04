@@ -10,7 +10,8 @@
   - [Link to Database](https://github.com/Lyukx/SDExplorer/wiki/Link-to-Database)
 
 ## Publication
-SDExplorer will attend [ICPC 2018](https://conf.researchr.org/home/icpc-2018) Tool Demonstration track. Please check the paper below:
+🎉 🎉 🎉 
+SDExplorer attended [ICPC 2018](https://conf.researchr.org/home/icpc-2018) Tool Demonstration track **and win the Best Tool Paper Award!** Please check the paper below:
 
 [SDExplorer: a generic toolkit for smoothly exploring massive-scale sequence diagram](https://conf.researchr.org/event/icpc-2018/icpc-2018-tool-demonstration-sdexplorer-a-generic-toolkit-for-smoothly-exploring-massive-scale-sequence-diagram)
 
