@@ -24,6 +24,8 @@ export default function SDController(objects, groups, messages){
     display = elementController.display;
     displaySet = elementController.displaySet;
 
+    this.logger = logger;
+
     // TODO add multi-thread
     mainThreadSet = new Set([0]);
     var temp = elementMap.get(0);

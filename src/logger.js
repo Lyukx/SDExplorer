@@ -1,7 +1,7 @@
 export default function Logger(){}
 
 Logger.prototype.output = function(log){
-  console.log(log)
+  //console.log(log)
 }
 
 Logger.prototype.logFold = function(groupInfo){

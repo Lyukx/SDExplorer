@@ -43,6 +43,8 @@ export default function SDViewer(parameters) {
     sdController.drawWindow();
     displaySet = sdController.getElementSet();
     elementMap = sdController.getElementMap();
+
+    this.logger = sdController.logger;
 }
 
 SDViewer.prototype.isMessageDisplayed = function(message){
