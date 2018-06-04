@@ -1,5 +1,6 @@
 import {default as ElementController} from "./elementController"
 import {default as MessageController} from "./messageController"
+import {default as Logger} from "./logger"
 
 var elementController;
 var messageController;
@@ -14,6 +15,8 @@ var displaySet;
 var validMessages;
 
 var loopList;
+
+var logger = new Logger();
 
 export default function SDController(objects, groups, messages){
     elementController = new ElementController(objects, groups);
@@ -97,6 +100,8 @@ function unfold(group){
     updateMessages(enabled);
 
     updateTopY();
+
+    logger.logUnfold(group);
 }
 
 function fold(group){
@@ -107,6 +112,8 @@ function fold(group){
     updateMessages([]); // When fold objects, no new message will appear
 
     updateTopY();
+
+    logger.logFold(group);
 }
 
 function allFolded(group) {
