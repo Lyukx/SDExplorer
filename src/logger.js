@@ -1,15 +1,15 @@
-export function Logger(){}
+export default function Logger(){}
 
 Logger.prototype.output = function(log){
   console.log(log)
 }
 
 Logger.prototype.logFold = function(groupInfo){
-  log = "Fold group: " + groupInfo.id + "@" + groupIndo.name
+  var log = "Fold group: " + groupInfo.id + "@" + groupInfo.displayName
   this.output(log)
 }
 
-Logger.prototype.logUnfold = function(groupIndo){
-  log = "Unfold group: " + groupInfo.id + "@" + groupIndo.name
+Logger.prototype.logUnfold = function(groupInfo){
+  var log = "Unfold group: " + groupInfo.id + "@" + groupInfo.displayName
   this.output(log)
 }
