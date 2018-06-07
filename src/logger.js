@@ -2,7 +2,7 @@ export default function Logger(){}
 
 // Output interface
 Logger.prototype.output = function(log){
-  console.log(log);
+  //console.log(log);
 }
 
 Logger.prototype.logFold = function(groupInfo){
@@ -12,7 +12,7 @@ Logger.prototype.logFold = function(groupInfo){
     type: "Fold",
     param: [groupInfo.id, groupInfo.displayName]
   };
-  this.output(log)
+  this.output(log);
 }
 
 Logger.prototype.logUnfold = function(groupInfo){
@@ -22,5 +22,15 @@ Logger.prototype.logUnfold = function(groupInfo){
     type: "Unfold",
     param: [groupInfo.id, groupInfo.displayName]
   }
-  this.output(log)
+  this.output(log);
+}
+
+Logger.prototype.logHinitbox = function(messageInfo){
+  var time = Date();
+  var log = {
+    time: time,
+    type: "Hintbox",
+    param: [messageInfo]
+  }
+  this.output(log);
 }

@@ -689,6 +689,7 @@ function drawMessage(message){
                     var curY = d3.mouse(this)[1];
                     d3.select(".hint-box").remove();
                     addHint(message.from, message.to, message.message, curX, curY);
+                    logger.logHinitbox(message.id);
                 }
                 else{
                     active = undefined;
@@ -701,6 +702,7 @@ function drawMessage(message){
                 var curX = d3.mouse(this)[0];
                 var curY = d3.mouse(this)[1];
                 addHint(message.from, message.to, message.message, curX, curY);
+                logger.logHinitbox(message.id);
             }
         });
 }
@@ -745,7 +747,7 @@ function addHint(from, to, msg, curX, curY){
         .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 * 5 + ELEMENT_CH_HEIGHT) + ")")
         .style("font-family","Courier New");
 
-    tempG.attr("transform", "translate(" + curX + "," + curY + ") scale(" + scale + ")")
+    tempG.attr("transform", "translate(" + curX + "," + curY + ") scale(" + scale + ")");
 }
 
 function updateMessages(enabled){
