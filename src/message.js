@@ -20,6 +20,9 @@ export function Message(rawMessage){
   else{
     this.return = rawMessage.return;
   }
+  if(rawMessage.thread != undefined){
+    this.thread = rawMessage.thread;
+  }
 }
 
 Message.prototype.equals = function(another){

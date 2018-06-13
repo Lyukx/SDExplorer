@@ -18,6 +18,9 @@ var loopList;
 
 var logger = new Logger();
 
+var threads = []
+var colorDict = ["#CCC", "#FF0000", "#00FF00", "0000FF", "FFFF00", "00FFFF", "FF00FF"];
+
 export default function SDController(objects, groups, messages){
     elementController = new ElementController(objects, groups);
     elementMap = elementController.elementMap;
@@ -656,12 +659,20 @@ function drawMessage(message){
             .attr("marker-end", "url(#end)");
 
     // Draw right active block
+    var color = "#CCC"
+    if(message.thread != undefined){
+      // Random select a color
+      if(threads.indexOf(message.thread) == -1){
+        threads.push(message.thread);
+      }
+      color = colorDict[threads.indexOf(message.thread) % colorDict.length];
+    }
     tempG.append("rect")
         	.attr("class", "rightActiveBlock")
         	.attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h2})
         	.attr("transform", "translate(" + x2 + "," + y2 + ")")
 			.style("stroke", "black")
-			.style("fill", "#CCC");
+			.style("fill", color);
 
     tempG.attr("class", "message")
         .datum(message);
