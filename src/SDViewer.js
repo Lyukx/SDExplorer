@@ -242,6 +242,8 @@ function setSVG(drawAreaId){
                             onDiagramMoved();
                         }
     	            }));
+    // Add initial state of svg
+    svg.attr("viewBox", "0 0 " + width + " " + height);
     // Disable double-click zoom
     svg.on("dblclick.zoom", null);
 
