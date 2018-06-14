@@ -14,7 +14,7 @@ var displaySet;
 
 var validMessages;
 
-var loopList;
+var loopList = [];
 
 var logger = new Logger();
 
@@ -285,6 +285,9 @@ SDController.prototype.drawWindow = function() {
         }
         drawMessage(validMessages[i]);
     }
+
+    // draw loop
+    drawLoops();
 }
 
 SDController.prototype.clearAll = function() {

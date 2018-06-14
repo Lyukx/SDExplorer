@@ -29,9 +29,6 @@ export default function SDViewer(parameters) {
   if(parameters.groups == undefined){
     parameters.groups = [];
   }
-  if(parameters.loops == undefined){
-    parameters.loops = [];
-  }
 
     setSVG(parameters.drawAreaId);
     sdController = new SDController(parameters.objects, parameters.groups, parameters.messages);
@@ -45,6 +42,10 @@ export default function SDViewer(parameters) {
     elementMap = sdController.getElementMap();
 
     this.logger = sdController.logger;
+
+  if(parameters.loops != undefined){
+    sdController.setLoops(parameters.loops);
+  }
 }
 
 SDViewer.prototype.isMessageDisplayed = function(message){
@@ -144,6 +145,7 @@ SDViewer.prototype.compress = function() {
 }
 
 SDViewer.prototype.decompress = function() {
+    this.setLoops([]);
     sdController.setMessages(this.rawMessageBeforeComress);
     d3.select(".loop-layout").selectAll("*").remove();
     sdController.enableFoldAndUnfold();
