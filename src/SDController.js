@@ -416,7 +416,8 @@ function drawElement(element){
     tempG.append("text")
          .text(function(d){ return element.displayName; })
          .attr("transform", "translate(" + element.width / 2 + "," + (element.height / 2 + ELEMENT_CH_HEIGHT) + ")")
-         .attr("text-anchor", "middle");
+         .attr("text-anchor", "middle")
+         .attr("font-family", "Consolas");
 
     // Move object to where it should be
     tempG.attr("class", "element")

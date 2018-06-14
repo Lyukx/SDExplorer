@@ -1,5 +1,5 @@
 var ELEMENT_HEIGHT = 40;
-var ELEMENT_CH_WIDTH = 10;
+var ELEMENT_CH_WIDTH = 8;
 var PADDING = 20;
 
 export function Element(rawElement) {
