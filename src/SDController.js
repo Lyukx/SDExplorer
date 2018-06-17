@@ -86,6 +86,10 @@ SDController.prototype.setLoops = function(loops){
     drawLoops();
 }
 
+SDController.prototype.updateAfterReOrder = function(){
+  elementController.updateAfterReOrder();
+}
+
 SDController.prototype.setMessages = function(messages) {
     messageController = new MessageController(messages, mainThreadSet, displaySet, elementMap);
     validMessages = messageController.validMessages;

@@ -63,15 +63,16 @@ export default function ElementController(objects, groups){
     this.displaySet = displaySet;
 }
 
-ElementController.prototype.setElementOrder = function(newOrderedDisplay){
-    this.display = newOrderedDisplay;
-
-    // Decide the position of elements
-    var dist = PADDING;
-    for(var i = 0; i < display.length; i++){
-        display[i].x = dist;
-        dist += (display[i].width + PADDING);
+ElementController.prototype.updateAfterReOrder = function(){
+  var dist = PADDING;
+  for(let element of display){
+    element.x = dist;
+    if(element.isGroup() && !element.fold){
+      dist += PADDING_GROUP;
+    } else{
+      dist += (element.width + PADDING);
     }
+  }
 }
 
 ElementController.prototype.getGroupFoldInfo = function(){
