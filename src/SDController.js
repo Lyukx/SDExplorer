@@ -987,7 +987,7 @@ function drawLoops(){
                 x1 = x2;
                 x2 = temp;
             }
-            x1 -= 60;
+            x1 -= 95;
             x2 += 60;
             if(x1 < min){
                 min = x1;
@@ -1014,12 +1014,13 @@ function drawLoops(){
             .style("stroke", "blue");
 
         temp.append("rect")
-            .attr({x: 0, y: 0, width: 45, height: 20})
+            .attr({x: 0, y: 0, width: 80, height: 20})
+            .style("fill", "white")
             .style("stroke", "blue")
-            .style("fill-opacity", "0");
+            .style("fill-opacity", "1");
 
         temp.append("text")
-            .text(function(d){ return "loop"; })
+            .text(function(d){ return "loop <" + loop.repeat + ">"; })
             .attr("transform", "translate(4, 16)");
 
         temp.attr("transform", "translate(" + min + "," + y1 + ")");
