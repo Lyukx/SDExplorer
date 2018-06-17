@@ -145,10 +145,9 @@ SDViewer.prototype.nearby = function(message) {
         count ++;
       }
     }
-printMessage(messages);
     sdController.updateAfterReOrder();
     updateSD(0, headY);
-printMessage(messages);
+    keepElementTop();
 }
 
 SDViewer.prototype.getMessages = function() {
