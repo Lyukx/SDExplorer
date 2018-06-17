@@ -171,6 +171,11 @@ var diagramSizeY;
 var diagramStartEle;
 var diagramStartMsg;
 var sizeSetted = false; // this is the switch of sized window mode
+var hintMessage;
+
+SDController.prototype.getHint = function() {
+  return hintMessage;
+}
 
 SDController.prototype.setDiagramSize = function(x, y) {
     diagramSizeX = x;
@@ -302,6 +307,7 @@ SDController.prototype.clearAll = function() {
     d3.select(".baseline-layout").remove();
 
     d3.select(".hint-box").remove();
+    hintMessage = undefined;
     generateLayout();
 }
 
@@ -345,6 +351,20 @@ SDController.prototype.enableFoldAndUnfold = function() {
             });
         }
       });
+}
+
+SDController.prototype.addHintByFunc = function(message){
+  var from = elementMap.get(message.from)
+  var x = from.x + from.width;
+  var y = message.position + 40;
+  addHint(message.from, message.to, message.message, x, y);
+  d3.selectAll(".message")
+    .each(function(thisMessage){
+      if(thisMessage == message){
+        active = d3.select(this).select(".message-click-active-block");
+        active.style("fill-opacity", "0.4");
+      }
+    });
 }
 
 /********************************************************************************************************************
@@ -709,11 +729,13 @@ function drawMessage(message){
                     var curY = d3.mouse(this)[1];
                     d3.select(".hint-box").remove();
                     addHint(message.from, message.to, message.message, curX, curY);
+                    hintMessage = message;
                     logger.logHinitbox(message.id);
                 }
                 else{
                     active = undefined;
                     d3.select(".hint-box").remove();
+                    hintMessage = undefined;
                 }
             }
             else{
@@ -722,6 +744,7 @@ function drawMessage(message){
                 var curX = d3.mouse(this)[0];
                 var curY = d3.mouse(this)[1];
                 addHint(message.from, message.to, message.message, curX, curY);
+                hintMessage = message;
                 logger.logHinitbox(message.id);
             }
         });

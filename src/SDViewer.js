@@ -114,11 +114,10 @@ function moveElement(display, index, elementId){
   }
 }
 
-function printMessage(messages){
-  for(let message of messages){
-    console.log(message.from + ":" + elementMap.get(message.from).x + " -> " + message.to + ":" + message.message + ":" + elementMap.get(message.to).x);
-  }
+SDViewer.prototype.getHint = function() {
+  return sdController.getHint();
 }
+
 // Return nearby element lists, with sequencial order
 SDViewer.prototype.nearby = function(message) {
   // While generated, the objects will be sorted by id (group with 1st element's id)
@@ -149,6 +148,10 @@ SDViewer.prototype.nearby = function(message) {
     updateSD(0, headY);
     keepElementTop();
     this.locate(message.id, width / oldScale, height / oldScale);
+}
+
+SDViewer.prototype.addHint = function(message) {
+  sdController.addHintByFunc(message);
 }
 
 SDViewer.prototype.getMessages = function() {
