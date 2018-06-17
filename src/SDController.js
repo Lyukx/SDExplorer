@@ -301,6 +301,7 @@ SDController.prototype.clearAll = function() {
     d3.select(".mainthread-layout").remove();
     d3.select(".baseline-layout").remove();
 
+    d3.select(".hint-box").remove();
     generateLayout();
 }
 
