@@ -6,3 +6,4 @@ dest/sd.min.js
 .DS_Store
 test/test_file/*.csv
 test/d3.min.js
+./deploy.sh

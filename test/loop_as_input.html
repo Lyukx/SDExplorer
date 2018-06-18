@@ -19,26 +19,22 @@ var messages = [
   {id: 0, from: 0, to: 1, message: "foo()"},
   {id: 1, from: 1, to: 2, message: "bar()"},
   {id: 2, from: 2, to: 0, message: "hoge()"},
-  {id: 2, from: 2, return: true},
+  {id: 2, return: true},
   {id: 3, from: 2, to: 3, message: "hogehoge()"},
-  {id: 3, from: 2, return: true},
+  {id: 3, return: true},
   {id: 4, from: 2, to: 0, message: "hoge()"},
-  {id: 4, from: 2, return: true},
+  {id: 4, return: true},
   {id: 5, from: 2, to: 3, message: "hogehoge()"},
-  {id: 5, from: 2, return: true},
+  {id: 5, return: true},
   {id: 6, from: 2, to: 0, message: "hoge()"},
-  {id: 6, from: 2, return: true},
+  {id: 6, return: true},
   {id: 7, from: 2, to: 3, message: "hogehoge()"},
-  {id: 7, from: 2, return: true},
-  {id: 1, from: 1, return: true},
-  {id: 0, from: 0, return: true}
+  {id: 7, return: true},
+  {id: 1, return: true},
+  {id: 0, return: true}
 ];
 
-var loops = [
-  represent: [2, 3],
-  field: [2, 3, 4, 5, 6, 7],
-  repeat: 3
-];
+var loops = [];
 
 var graph = new sd.SDViewer({
   objects: objects,

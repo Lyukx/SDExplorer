@@ -1,5 +1,6 @@
 import {default as ElementController} from "./elementController"
 import {default as MessageController} from "./messageController"
+import {default as Logger} from "./logger"
 
 var elementController;
 var messageController;
@@ -13,13 +14,20 @@ var displaySet;
 
 var validMessages;
 
-var loopList;
+var loopList = [];
+
+var logger = new Logger();
+
+var threads = []
+var colorDict = ["#CCC", "#FF0000", "#00FF00", "0000FF", "FFFF00", "00FFFF", "FF00FF"];
 
 export default function SDController(objects, groups, messages){
     elementController = new ElementController(objects, groups);
     elementMap = elementController.elementMap;
     display = elementController.display;
     displaySet = elementController.displaySet;
+
+    this.logger = logger;
 
     // TODO add multi-thread
     mainThreadSet = new Set([0]);
@@ -78,6 +86,10 @@ SDController.prototype.setLoops = function(loops){
     drawLoops();
 }
 
+SDController.prototype.updateAfterReOrder = function(){
+  elementController.updateAfterReOrder();
+}
+
 SDController.prototype.setMessages = function(messages) {
     messageController = new MessageController(messages, mainThreadSet, displaySet, elementMap);
     validMessages = messageController.validMessages;
@@ -97,6 +109,8 @@ function unfold(group){
     updateMessages(enabled);
 
     updateTopY();
+
+    logger.logUnfold(group);
 }
 
 function fold(group){
@@ -107,6 +121,8 @@ function fold(group){
     updateMessages([]); // When fold objects, no new message will appear
 
     updateTopY();
+
+    logger.logFold(group);
 }
 
 function allFolded(group) {
@@ -155,6 +171,11 @@ var diagramSizeY;
 var diagramStartEle;
 var diagramStartMsg;
 var sizeSetted = false; // this is the switch of sized window mode
+var hintMessage;
+
+SDController.prototype.getHint = function() {
+  return hintMessage;
+}
 
 SDController.prototype.setDiagramSize = function(x, y) {
     diagramSizeX = x;
@@ -273,6 +294,9 @@ SDController.prototype.drawWindow = function() {
         }
         drawMessage(validMessages[i]);
     }
+
+    // draw loop
+    drawLoops();
 }
 
 SDController.prototype.clearAll = function() {
@@ -282,6 +306,8 @@ SDController.prototype.clearAll = function() {
     d3.select(".mainthread-layout").remove();
     d3.select(".baseline-layout").remove();
 
+    d3.select(".hint-box").remove();
+    hintMessage = undefined;
     generateLayout();
 }
 
@@ -325,6 +351,20 @@ SDController.prototype.enableFoldAndUnfold = function() {
             });
         }
       });
+}
+
+SDController.prototype.addHintByFunc = function(message){
+  var from = elementMap.get(message.from)
+  var x = from.x + from.width;
+  var y = message.position + 40;
+  addHint(message.from, message.to, message.message, x, y);
+  d3.selectAll(".message")
+    .each(function(thisMessage){
+      if(thisMessage == message){
+        active = d3.select(this).select(".message-click-active-block");
+        active.style("fill-opacity", "0.4");
+      }
+    });
 }
 
 /********************************************************************************************************************
@@ -404,7 +444,8 @@ function drawElement(element){
     tempG.append("text")
          .text(function(d){ return element.displayName; })
          .attr("transform", "translate(" + element.width / 2 + "," + (element.height / 2 + ELEMENT_CH_HEIGHT) + ")")
-         .attr("text-anchor", "middle");
+         .attr("text-anchor", "middle")
+         .attr("font-family", "Consolas");
 
     // Move object to where it should be
     tempG.attr("class", "element")
@@ -647,12 +688,20 @@ function drawMessage(message){
             .attr("marker-end", "url(#end)");
 
     // Draw right active block
+    var color = "#CCC"
+    if(message.thread != undefined){
+      // Random select a color
+      if(threads.indexOf(message.thread) == -1){
+        threads.push(message.thread);
+      }
+      color = colorDict[threads.indexOf(message.thread) % colorDict.length];
+    }
     tempG.append("rect")
         	.attr("class", "rightActiveBlock")
         	.attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h2})
         	.attr("transform", "translate(" + x2 + "," + y2 + ")")
 			.style("stroke", "black")
-			.style("fill", "#CCC");
+			.style("fill", color);
 
     tempG.attr("class", "message")
         .datum(message);
@@ -680,10 +729,13 @@ function drawMessage(message){
                     var curY = d3.mouse(this)[1];
                     d3.select(".hint-box").remove();
                     addHint(message.from, message.to, message.message, curX, curY);
+                    hintMessage = message;
+                    logger.logHinitbox(message.id);
                 }
                 else{
                     active = undefined;
                     d3.select(".hint-box").remove();
+                    hintMessage = undefined;
                 }
             }
             else{
@@ -692,6 +744,8 @@ function drawMessage(message){
                 var curX = d3.mouse(this)[0];
                 var curY = d3.mouse(this)[1];
                 addHint(message.from, message.to, message.message, curX, curY);
+                hintMessage = message;
+                logger.logHinitbox(message.id);
             }
         });
 }
@@ -736,7 +790,7 @@ function addHint(from, to, msg, curX, curY){
         .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 * 5 + ELEMENT_CH_HEIGHT) + ")")
         .style("font-family","Courier New");
 
-    tempG.attr("transform", "translate(" + curX + "," + curY + ") scale(" + scale + ")")
+    tempG.attr("transform", "translate(" + curX + "," + curY + ") scale(" + scale + ")");
 }
 
 function updateMessages(enabled){
@@ -933,7 +987,7 @@ function drawLoops(){
                 x1 = x2;
                 x2 = temp;
             }
-            x1 -= 60;
+            x1 -= 95;
             x2 += 60;
             if(x1 < min){
                 min = x1;
@@ -960,12 +1014,13 @@ function drawLoops(){
             .style("stroke", "blue");
 
         temp.append("rect")
-            .attr({x: 0, y: 0, width: 45, height: 20})
+            .attr({x: 0, y: 0, width: 80, height: 20})
+            .style("fill", "white")
             .style("stroke", "blue")
-            .style("fill-opacity", "0");
+            .style("fill-opacity", "1");
 
         temp.append("text")
-            .text(function(d){ return "loop"; })
+            .text(function(d){ return "loop <" + loop.repeat + ">"; })
             .attr("transform", "translate(4, 16)");
 
         temp.attr("transform", "translate(" + min + "," + y1 + ")");

@@ -29,9 +29,6 @@ export default function SDViewer(parameters) {
   if(parameters.groups == undefined){
     parameters.groups = [];
   }
-  if(parameters.loops == undefined){
-    parameters.loops = [];
-  }
 
     setSVG(parameters.drawAreaId);
     sdController = new SDController(parameters.objects, parameters.groups, parameters.messages);
@@ -43,6 +40,12 @@ export default function SDViewer(parameters) {
     sdController.drawWindow();
     displaySet = sdController.getElementSet();
     elementMap = sdController.getElementMap();
+
+    this.logger = sdController.logger;
+
+  if(parameters.loops != undefined){
+    sdController.setLoops(parameters.loops);
+  }
 }
 
 SDViewer.prototype.isMessageDisplayed = function(message){
@@ -83,18 +86,72 @@ SDViewer.prototype.locate = function(messageId, scaleX, scaleY){
     }
 }
 
+// Move <element> to position <index> in <display> array
+function moveElement(display, index, elementId){
+  var element = elementMap.get(elementId);
+  // move whole group if it is a group member
+  while(element.parent != -1){
+    element = elementMap.get(element.parent);
+  }
+
+  var childrenList = []
+  // move all its children if it is an un-folded group
+  if(element.isGroup() && !element.fold){
+    var i = display.indexOf(element) + 1;
+    for(childrenNum = element.children.length; childrenNum > 0; childrenNum--){
+      if(display[i].isGroup() && !display[i].fold){
+        childrenNum += display[i].children.length;
+      }
+      display.splice(i, 1);
+    }
+  }
+  display.splice(display.indexOf(element), 1);
+  display.splice(index, 0, element);
+  if(childrenList.length != 0){
+    for(let i = 0; i < childrenList.length; i++){
+      display.splice(index + 1 + i, 0, childrenList[i]);
+    }
+  }
+}
+
+SDViewer.prototype.getHint = function() {
+  return sdController.getHint();
+}
+
+// Return nearby element lists, with sequencial order
 SDViewer.prototype.nearby = function(message) {
-    // With a folded group A[a,b,c], 'display' should be [...other, A, other...]
-    // With a unfolded group A[a,b,c], 'display' should be [...other, A, a, b, c, other...]
+  // While generated, the objects will be sorted by id (group with 1st element's id)
     var display = this.getElements();
     var messages = this.getMessages();
     var initialElement = elementMap.get(message.from);
     var initialMessageIndex = messages.indexOf(message);
 
     var handled = new Set();
-    for(var i = 0; i < 100; i++) {
-
+    var count = 0;
+    for(let i = 0; i < 50; i++) {
+      if(initialMessageIndex + i >= messages.length){
+        break;
+      }
+      var thisMessage = messages[initialMessageIndex + i];
+      if(!handled.has(thisMessage.from)){
+        handled.add(thisMessage.from);
+        moveElement(display, count, thisMessage.from);
+        count ++;
+      }
+      if(!handled.has(thisMessage.to)){
+        handled.add(thisMessage.to);
+        moveElement(display, count, thisMessage.to);
+        count ++;
+      }
     }
+    sdController.updateAfterReOrder();
+    updateSD(0, headY);
+    keepElementTop();
+    this.locate(message.id, width / oldScale, height / oldScale);
+}
+
+SDViewer.prototype.addHint = function(message) {
+  sdController.addHintByFunc(message);
 }
 
 SDViewer.prototype.getMessages = function() {
@@ -142,6 +199,7 @@ SDViewer.prototype.compress = function() {
 }
 
 SDViewer.prototype.decompress = function() {
+    this.setLoops([]);
     sdController.setMessages(this.rawMessageBeforeComress);
     d3.select(".loop-layout").selectAll("*").remove();
     sdController.enableFoldAndUnfold();
@@ -240,6 +298,8 @@ function setSVG(drawAreaId){
                             onDiagramMoved();
                         }
     	            }));
+    // Add initial state of svg
+    svg.attr("viewBox", "0 0 " + width + " " + height);
     // Disable double-click zoom
     svg.on("dblclick.zoom", null);
 
