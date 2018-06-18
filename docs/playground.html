@@ -192,7 +192,7 @@ Group_B_C_D :: B, Group_C_D</textarea>
       var traces = $("#traces").val();
       [objects, messages, groups] = parse(traces);
       console.log([objects, messages, groups]);
-      svg = new sd.SDViewer({
+      sequenceDiagram = new sd.SDViewer({
         objects: objects,
         messages: messages,
         groups: groups,
