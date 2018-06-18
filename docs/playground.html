@@ -163,8 +163,7 @@ Group_B_C_D :: B, Group_C_D</textarea>
         }
         else if(typeCode == RETURN){
           var returnMessage = Object.assign({}, activeStack.pop());
-          returnMessage.to = -1;
-          returnMessage.message = "";
+          returnMessage.return = true;
           messages.push(returnMessage);
         }
         else{
@@ -180,8 +179,7 @@ Group_B_C_D :: B, Group_C_D</textarea>
 
       while(activeStack.length != 0){
         var returnMessage = Object.assign({}, activeStack.pop());
-        returnMessage.to = -1;
-        returnMessage.message = "";
+        returnMessage.return = true;
         messages.push(returnMessage);
       }
 
@@ -194,7 +192,13 @@ Group_B_C_D :: B, Group_C_D</textarea>
       var traces = $("#traces").val();
       [objects, messages, groups] = parse(traces);
       console.log([objects, messages, groups]);
-      sequenceDiagram = new sd.SDViewer(objects, groups, messages, "drawArea");
+      svg = new sd.SDViewer({
+        objects: objects,
+        messages: messages,
+        groups: groups,
+        loops: [],
+        drawAreaId: "drawArea"
+      });
     }
 
     $("#generate").click(function(){
