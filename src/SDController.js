@@ -282,6 +282,10 @@ SDController.prototype.drawWindow = function() {
         drawElement(display[i]);
     }
 
+    if(!enableFold){
+      d3.selectAll(".element").on("click", null);
+    }
+
     updateTopY();
 
     // draw the main threads
@@ -328,29 +332,32 @@ SDController.prototype.updateWithoutAnimation = function(unfoldSet) {
     }
 }
 
+var enableFold = true;
 SDController.prototype.disableFoldAndUnfold = function() {
-    d3.selectAll(".element")
-      .each(function(element){
-        if(element.isGroup()){
-            d3.select(this).on("click", null);
-        }
-      });
+  enableFold = false;
+  d3.selectAll(".element")
+    .each(function(element){
+      if(element.isGroup()){
+        d3.select(this).on("click", null);
+      }
+    });
 }
 
 SDController.prototype.enableFoldAndUnfold = function() {
-    d3.selectAll(".element")
-      .each(function(element){
-        if(element.isGroup()){
-            d3.select(this).on("click", function(element){
-                if(element.fold){
-                    unfold(element);
-                }
-                else{
-                    foldAll(element);
-                }
-            });
-        }
-      });
+  enableFold = true;
+  d3.selectAll(".element")
+    .each(function(element){
+      if(element.isGroup()){
+        d3.select(this).on("click", function(element){
+          if(element.fold){
+            unfold(element);
+          }
+          else{
+            foldAll(element);
+          }
+        });
+      }
+    });
 }
 
 SDController.prototype.addHintByFunc = function(message){
