@@ -269,7 +269,7 @@ function setSVG(drawAreaId){
     // Set svg zoomable and draggable
     width = window.innerWidth;
     height = window.innerHeight - 100;
-    curPos_x, curPos_y, mousePos_x, mousePos_y;
+    [curPos_x, curPos_y, mousePos_x, mousePos_y] = [0, 0, 0, 0];
     isMouseDown, oldScale = 1;
     viewBoxX = - 10;
     viewBoxY = - 10;
