@@ -371,7 +371,7 @@ SDController.prototype.addHintByFunc = function(message){
 Rest part is the 'render' part, which contains functions to draw / modify elements on the SVG.
 *********************************************************************************************************************/
 var ELEMENT_HEIGHT = 40;
-var ELEMENT_CH_WIDTH = 10;
+var ELEMENT_CH_WIDTH = 8;
 var ELEMENT_CH_HEIGHT = 4;
 
 var PADDING = 20;

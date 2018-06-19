@@ -5,7 +5,7 @@
 }(this, (function (exports) { 'use strict';
 
 var ELEMENT_HEIGHT$2 = 40;
-var ELEMENT_CH_WIDTH$2 = 8;
+var ELEMENT_CH_WIDTH$2 = 7;
 var PADDING$2 = 20;
 
 function Element(rawElement) {
@@ -32,7 +32,7 @@ Element.prototype.isGroup = function () {
     return this.children.length != 0;
 };
 
-var ELEMENT_CH_WIDTH$1 = 10;
+var ELEMENT_CH_WIDTH$1 = 7;
 var PADDING$1 = 20;
 var PADDING_GROUP$1 = 10;
 
@@ -943,7 +943,7 @@ SDController.prototype.addHintByFunc = function(message){
 Rest part is the 'render' part, which contains functions to draw / modify elements on the SVG.
 *********************************************************************************************************************/
 var ELEMENT_HEIGHT = 40;
-var ELEMENT_CH_WIDTH = 10;
+var ELEMENT_CH_WIDTH = 7;
 var ELEMENT_CH_HEIGHT = 4;
 
 var PADDING = 20;
