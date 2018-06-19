@@ -98,20 +98,22 @@ function moveElement(display, index, elementId){
   // move all its children if it is an un-folded group
   if(element.isGroup() && !element.fold){
     var i = display.indexOf(element) + 1;
-    for(childrenNum = element.children.length; childrenNum > 0; childrenNum--){
+    for(let childrenNum = element.children.length; childrenNum > 0; childrenNum--){
       if(display[i].isGroup() && !display[i].fold){
         childrenNum += display[i].children.length;
       }
+      childrenList.push(display[i]);
       display.splice(i, 1);
     }
   }
   display.splice(display.indexOf(element), 1);
   display.splice(index, 0, element);
   if(childrenList.length != 0){
-    for(let i = 0; i < childrenList.length; i++){
-      display.splice(index + 1 + i, 0, childrenList[i]);
+    for(let j = 0; j < childrenList.length; j++){
+      display.splice(index + 1 + j, 0, childrenList[j]);
     }
   }
+  return childrenList.length;
 }
 
 SDViewer.prototype.getHint = function() {
@@ -135,12 +137,12 @@ SDViewer.prototype.nearby = function(message) {
       var thisMessage = messages[initialMessageIndex + i];
       if(!handled.has(thisMessage.from)){
         handled.add(thisMessage.from);
-        moveElement(display, count, thisMessage.from);
+        count += moveElement(display, count, thisMessage.from);
         count ++;
       }
       if(!handled.has(thisMessage.to)){
         handled.add(thisMessage.to);
-        moveElement(display, count, thisMessage.to);
+        count += moveElement(display, count, thisMessage.to);
         count ++;
       }
     }
