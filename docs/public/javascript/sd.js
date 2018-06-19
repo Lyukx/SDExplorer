@@ -984,7 +984,7 @@ function generateLayout() {
 function drawElement(element){
     var tempG = d3.select(".objects-layout").append("g");
     // Draw a lifeline
-    var x = element.width / 2;
+    var x = (element.displayName.length * ELEMENT_CH_WIDTH + PADDING * 2) / 2;
     var msgNum = sizeSetted && diagramStartMsg + diagramSizeY < validMessages.length ? diagramSizeY : validMessages.length;
     var y1 = 0;
     var y2 = msgNum * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
@@ -1012,11 +1012,11 @@ function drawElement(element){
     }
 
     // Write names
-    tempG.append("text")
-         .text(function(d){ return element.displayName; })
-         .attr("transform", "translate(" + element.width / 2 + "," + (element.height / 2 + ELEMENT_CH_HEIGHT) + ")")
-         .attr("text-anchor", "middle")
-         .attr("font-family", "Consolas");
+    var text = tempG.append("text")
+                 .text(function(d){ return element.displayName; })
+                 .attr("transform", "translate(" + x + "," + (ELEMENT_HEIGHT / 2 + ELEMENT_CH_HEIGHT) + ")")
+                 .attr("text-anchor", "middle")
+                 .attr("font-family", "Consolas");
 
     // Move object to where it should be
     tempG.attr("class", "element")
@@ -1033,6 +1033,13 @@ function drawElement(element){
                  foldAll(thisGroup);
              }
          });
+    }
+
+    if(element.isGroup() && !element.fold){
+      tempG.style("fill-opacity", "0");
+
+      d3.select("#baseLine" + element.id)
+        .style("opacity", 0);
     }
 
     return tempG;
