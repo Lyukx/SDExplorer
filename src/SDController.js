@@ -1014,6 +1014,8 @@ function drawLoops(){
         var h = messagesInLoop.length * MSG_HEIGHT;
         var temp = d3.select(".loop-layout").append("g");
 
+        temp.attr("class", "loop").datum(messagesInLoop[0]);
+
         temp.append("line")
             .attr({x1: 0, y1: 0, x2: max - min, y2: 0})
             .style("stroke", "blue");
