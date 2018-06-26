@@ -1584,6 +1584,8 @@ function drawLoops(){
         var h = messagesInLoop.length * MSG_HEIGHT;
         var temp = d3.select(".loop-layout").append("g");
 
+        temp.attr("class", "loop").datum(messagesInLoop[0]);
+
         temp.append("line")
             .attr({x1: 0, y1: 0, x2: max - min, y2: 0})
             .style("stroke", "blue");
@@ -1774,29 +1776,13 @@ function SDViewer(parameters) {
 }
 
 SDViewer.prototype.isMessageDisplayed = function(message){
-    // find the from/to relationship
-    while(!displaySet$2.has(message.from)){
-        if(elementMap$2.get(message.from) == undefined){
-            return false;
-        }
-        var parent = elementMap$2.get(message.from).parent;
-        if(parent == -1){
-            break;
-        }
-        message.from = parent;
+  var validMessage = sdController.getMessages();
+  for(let thisMessage of validMessage){
+    if(thisMessage.id == message.id){
+      return true;
     }
-    while(!displaySet$2.has(message.to)){
-        if(elementMap$2.get(message.to) == undefined){
-            return false;
-        }
-        var parent = elementMap$2.get(message.to).parent;
-        if(parent == -1){
-            break;
-        }
-        message.to = parent;
-    }
-
-    return !(message.from == message.to || message.from == -1 || message.to == -1);
+  }
+  return false;
 };
 
 SDViewer.prototype.locate = function(messageId, scaleX, scaleY){

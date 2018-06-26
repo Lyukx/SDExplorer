@@ -49,29 +49,13 @@ export default function SDViewer(parameters) {
 }
 
 SDViewer.prototype.isMessageDisplayed = function(message){
-    // find the from/to relationship
-    while(!displaySet.has(message.from)){
-        if(elementMap.get(message.from) == undefined){
-            return false;
-        }
-        var parent = elementMap.get(message.from).parent;
-        if(parent == -1){
-            break;
-        }
-        message.from = parent;
+  var validMessage = sdController.getMessages();
+  for(let thisMessage of validMessage){
+    if(thisMessage.id == message.id){
+      return true;
     }
-    while(!displaySet.has(message.to)){
-        if(elementMap.get(message.to) == undefined){
-            return false;
-        }
-        var parent = elementMap.get(message.to).parent;
-        if(parent == -1){
-            break;
-        }
-        message.to = parent;
-    }
-
-    return !(message.from == message.to || message.from == -1 || message.to == -1);
+  }
+  return false;
 }
 
 SDViewer.prototype.locate = function(messageId, scaleX, scaleY){
