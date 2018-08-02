@@ -1,6 +1,6 @@
 import {Element} from "./element";
 var ELEMENT_HEIGHT = 40;
-var ELEMENT_CH_WIDTH = 10;
+var ELEMENT_CH_WIDTH = 8;
 var ELEMENT_CH_HEIGHT = 4;
 var PADDING = 20;
 var PADDING_GROUP = 10;
