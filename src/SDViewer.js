@@ -30,6 +30,13 @@ export default function SDViewer(parameters) {
     parameters.groups = [];
   }
 
+  if(parameters.width != undefined){
+    width = parameters.width;
+  }
+  if(parameters.height != undefined){
+    height = parameters.height;
+  }
+
     setSVG(parameters.drawAreaId);
     sdController = new SDController(parameters.objects, parameters.groups, parameters.messages);
     // Save the raw message data in order to resume from compression
@@ -251,8 +258,12 @@ function keepElementTop() {
 
 function setSVG(drawAreaId){
     // Set svg zoomable and draggable
-    width = window.innerWidth;
-    height = window.innerHeight - 100;
+    if(width == undefined){
+      width = window.innerWidth;
+    }
+    if(height == undefined){
+      height = window.innerHeight - 100;
+    }
     [curPos_x, curPos_y, mousePos_x, mousePos_y] = [0, 0, 0, 0];
     isMouseDown, oldScale = 1;
     viewBoxX = - 10;
