@@ -306,13 +306,10 @@ function setSVG(drawAreaId){
         mousePos_y = d3.mouse(this)[1];
     });
 
-    svg.on("mouseup", function () {
+    // mouse may be released out of the svg area
+    document.body.onmouseup = function(){
         isMouseDown = false;
-        viewBoxX = viewBoxX - d3.mouse(this)[0] + mousePos_x;
-        viewBoxY = Math.max(viewBoxY - d3.mouse(this)[1] + mousePos_y, 2 * sdController.top);
-        svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
-        onDiagramMoved();
-    });
+    }
 
     svg.on("mousemove", function () {
         curPos_x = d3.mouse(this)[0];
