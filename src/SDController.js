@@ -282,6 +282,10 @@ SDController.prototype.drawWindow = function() {
         drawElement(display[i]);
     }
 
+    if(!enableFold){
+      d3.selectAll(".element").on("click", null);
+    }
+
     updateTopY();
 
     // draw the main threads
@@ -328,29 +332,32 @@ SDController.prototype.updateWithoutAnimation = function(unfoldSet) {
     }
 }
 
+var enableFold = true;
 SDController.prototype.disableFoldAndUnfold = function() {
-    d3.selectAll(".element")
-      .each(function(element){
-        if(element.isGroup()){
-            d3.select(this).on("click", null);
-        }
-      });
+  enableFold = false;
+  d3.selectAll(".element")
+    .each(function(element){
+      if(element.isGroup()){
+        d3.select(this).on("click", null);
+      }
+    });
 }
 
 SDController.prototype.enableFoldAndUnfold = function() {
-    d3.selectAll(".element")
-      .each(function(element){
-        if(element.isGroup()){
-            d3.select(this).on("click", function(element){
-                if(element.fold){
-                    unfold(element);
-                }
-                else{
-                    foldAll(element);
-                }
-            });
-        }
-      });
+  enableFold = true;
+  d3.selectAll(".element")
+    .each(function(element){
+      if(element.isGroup()){
+        d3.select(this).on("click", function(element){
+          if(element.fold){
+            unfold(element);
+          }
+          else{
+            foldAll(element);
+          }
+        });
+      }
+    });
 }
 
 SDController.prototype.addHintByFunc = function(message){
@@ -371,7 +378,7 @@ SDController.prototype.addHintByFunc = function(message){
 Rest part is the 'render' part, which contains functions to draw / modify elements on the SVG.
 *********************************************************************************************************************/
 var ELEMENT_HEIGHT = 40;
-var ELEMENT_CH_WIDTH = 10;
+var ELEMENT_CH_WIDTH = 8;
 var ELEMENT_CH_HEIGHT = 4;
 
 var PADDING = 20;
@@ -413,7 +420,7 @@ function generateLayout() {
 function drawElement(element){
     var tempG = d3.select(".objects-layout").append("g");
     // Draw a lifeline
-    var x = element.width / 2;
+    var x = (element.displayName.length * ELEMENT_CH_WIDTH + PADDING * 2) / 2;
     var msgNum = sizeSetted && diagramStartMsg + diagramSizeY < validMessages.length ? diagramSizeY : validMessages.length;
     var y1 = 0;
     var y2 = msgNum * MSG_HEIGHT + ELEMENT_HEIGHT + MSG_HEIGHT / 2;
@@ -441,11 +448,11 @@ function drawElement(element){
     }
 
     // Write names
-    tempG.append("text")
-         .text(function(d){ return element.displayName; })
-         .attr("transform", "translate(" + element.width / 2 + "," + (element.height / 2 + ELEMENT_CH_HEIGHT) + ")")
-         .attr("text-anchor", "middle")
-         .attr("font-family", "Consolas");
+    var text = tempG.append("text")
+                 .text(function(d){ return element.displayName; })
+                 .attr("transform", "translate(" + x + "," + (ELEMENT_HEIGHT / 2 + ELEMENT_CH_HEIGHT) + ")")
+                 .attr("text-anchor", "middle")
+                 .attr("font-family", "Consolas");
 
     // Move object to where it should be
     tempG.attr("class", "element")
@@ -462,6 +469,13 @@ function drawElement(element){
                  foldAll(thisGroup);
              }
          });
+    }
+
+    if(element.isGroup() && !element.fold){
+      tempG.style("fill-opacity", "0");
+
+      d3.select("#baseLine" + element.id)
+        .style("opacity", 0);
     }
 
     return tempG;
@@ -999,6 +1013,8 @@ function drawLoops(){
         var y1 = firstValid.position - 10;
         var h = messagesInLoop.length * MSG_HEIGHT;
         var temp = d3.select(".loop-layout").append("g");
+
+        temp.attr("class", "loop").datum(messagesInLoop[0]);
 
         temp.append("line")
             .attr({x1: 0, y1: 0, x2: max - min, y2: 0})

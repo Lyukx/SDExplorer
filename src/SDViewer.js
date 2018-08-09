@@ -30,6 +30,13 @@ export default function SDViewer(parameters) {
     parameters.groups = [];
   }
 
+  if(parameters.width != undefined){
+    width = parameters.width;
+  }
+  if(parameters.height != undefined){
+    height = parameters.height;
+  }
+
     setSVG(parameters.drawAreaId);
     sdController = new SDController(parameters.objects, parameters.groups, parameters.messages);
     // Save the raw message data in order to resume from compression
@@ -49,29 +56,13 @@ export default function SDViewer(parameters) {
 }
 
 SDViewer.prototype.isMessageDisplayed = function(message){
-    // find the from/to relationship
-    while(!displaySet.has(message.from)){
-        if(elementMap.get(message.from) == undefined){
-            return false;
-        }
-        var parent = elementMap.get(message.from).parent;
-        if(parent == -1){
-            break;
-        }
-        message.from = parent;
+  var validMessage = sdController.getMessages();
+  for(let thisMessage of validMessage){
+    if(thisMessage.id == message.id){
+      return true;
     }
-    while(!displaySet.has(message.to)){
-        if(elementMap.get(message.to) == undefined){
-            return false;
-        }
-        var parent = elementMap.get(message.to).parent;
-        if(parent == -1){
-            break;
-        }
-        message.to = parent;
-    }
-
-    return !(message.from == message.to || message.from == -1 || message.to == -1);
+  }
+  return false;
 }
 
 SDViewer.prototype.locate = function(messageId, scaleX, scaleY){
@@ -98,20 +89,22 @@ function moveElement(display, index, elementId){
   // move all its children if it is an un-folded group
   if(element.isGroup() && !element.fold){
     var i = display.indexOf(element) + 1;
-    for(childrenNum = element.children.length; childrenNum > 0; childrenNum--){
+    for(let childrenNum = element.children.length; childrenNum > 0; childrenNum--){
       if(display[i].isGroup() && !display[i].fold){
         childrenNum += display[i].children.length;
       }
+      childrenList.push(display[i]);
       display.splice(i, 1);
     }
   }
   display.splice(display.indexOf(element), 1);
   display.splice(index, 0, element);
   if(childrenList.length != 0){
-    for(let i = 0; i < childrenList.length; i++){
-      display.splice(index + 1 + i, 0, childrenList[i]);
+    for(let j = 0; j < childrenList.length; j++){
+      display.splice(index + 1 + j, 0, childrenList[j]);
     }
   }
+  return childrenList.length;
 }
 
 SDViewer.prototype.getHint = function() {
@@ -135,12 +128,12 @@ SDViewer.prototype.nearby = function(message) {
       var thisMessage = messages[initialMessageIndex + i];
       if(!handled.has(thisMessage.from)){
         handled.add(thisMessage.from);
-        moveElement(display, count, thisMessage.from);
+        count += moveElement(display, count, thisMessage.from);
         count ++;
       }
       if(!handled.has(thisMessage.to)){
         handled.add(thisMessage.to);
-        moveElement(display, count, thisMessage.to);
+        count += moveElement(display, count, thisMessage.to);
         count ++;
       }
     }
@@ -265,9 +258,13 @@ function keepElementTop() {
 
 function setSVG(drawAreaId){
     // Set svg zoomable and draggable
-    width = window.innerWidth;
-    height = window.innerHeight - 100;
-    curPos_x, curPos_y, mousePos_x, mousePos_y;
+    if(width == undefined){
+      width = window.innerWidth;
+    }
+    if(height == undefined){
+      height = window.innerHeight - 100;
+    }
+    [curPos_x, curPos_y, mousePos_x, mousePos_y] = [0, 0, 0, 0];
     isMouseDown, oldScale = 1;
     viewBoxX = - 10;
     viewBoxY = - 10;
@@ -309,13 +306,10 @@ function setSVG(drawAreaId){
         mousePos_y = d3.mouse(this)[1];
     });
 
-    svg.on("mouseup", function () {
+    // mouse may be released out of the svg area
+    document.body.onmouseup = function(){
         isMouseDown = false;
-        viewBoxX = viewBoxX - d3.mouse(this)[0] + mousePos_x;
-        viewBoxY = Math.max(viewBoxY - d3.mouse(this)[1] + mousePos_y, 2 * sdController.top);
-        svg.attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
-        onDiagramMoved();
-    });
+    }
 
     svg.on("mousemove", function () {
         curPos_x = d3.mouse(this)[0];
