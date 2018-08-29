@@ -48,7 +48,7 @@ git clone https://github.com/Lyukx/SDExplorer
 ```
 npm install
 ```
- - Run `prepublish` script to compile `sd.js` and `sd.min.js`!
+ - Run `build` script to re-compile `sd.js` and `sd.min.js`!
 ```
-npm run prepublish
+npm run build
 ```

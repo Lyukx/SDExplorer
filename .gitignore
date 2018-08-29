@@ -1,8 +1,4 @@
 node_modules/
-test/sd.js
-test/sd.min.js
-dest/sd.js
-dest/sd.min.js
 .DS_Store
 test/test_file/*.csv
 test/d3.min.js
