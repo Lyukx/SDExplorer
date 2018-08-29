@@ -54,7 +54,12 @@ function initElements(objects, groups) {
         var e = new Element(group);
         e.children = group.objs;
         elementMap$1.set(e.id, e);
+    });
 
+    // Set the parent of each group.
+    // Note that since hierarchical grouping is allowed, a parent can be a group;
+    // before setting parents, elementMap$1 should have mappings for all of the groups.
+    groups.forEach(function(group) {
         objects = group.objs;
         for(var i = 0; i < objects.length; i++) {
             var thisElement = elementMap$1.get(objects[i]);
