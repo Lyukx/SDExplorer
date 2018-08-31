@@ -12,6 +12,7 @@ function Element(rawElement) {
     // Display information
     this.id = rawElement.id;
     this.displayName = rawElement.name;
+    this.fqcn = rawElement.fqcn; //inserted by ishida
     if(rawElement.type != undefined){ // objects
         this.displayName += (":" + rawElement.type);
     }
@@ -54,7 +55,12 @@ function initElements(objects, groups) {
         var e = new Element(group);
         e.children = group.objs;
         elementMap$1.set(e.id, e);
+    });
 
+    // Set the parent of each group.
+    // Note that since hierarchical grouping is allowed, a parent can be a group;
+    // before setting parents, elementMap$1 should have mappings for all of the groups.
+    groups.forEach(function(group) {
         objects = group.objs;
         for(var i = 0; i < objects.length; i++) {
             var thisElement = elementMap$1.get(objects[i]);
@@ -936,7 +942,7 @@ SDController.prototype.addHintByFunc = function(message){
   var from = elementMap.get(message.from);
   var x = from.x + from.width;
   var y = message.position + 40;
-  addHint(message.from, message.to, message.message, x, y);
+  addHint(message.from, message.to, message.message, x, y, message.id); // ishida
   d3.selectAll(".message")
     .each(function(thisMessage){
       if(thisMessage == message){
@@ -1011,6 +1017,18 @@ function drawElement(element){
     var rect = tempG.append("rect")
                     .attr({x: 0, y: 0, width: element.width, height: element.height})
                     .style("stroke", "black");
+
+    rect.on({
+        'mouseenter': function () {
+            enterAction(element, this);
+            //addClassBox(element);
+        },
+        'mouseleave': function () {
+            leaveAction(element, this);
+            //d3.select(".class-box").remove();
+        }
+    });
+
     if(element.isGroup()){
         rect.style("fill", "yellow");
     }
@@ -1302,6 +1320,7 @@ function drawMessage(message){
         .datum(message.id);
 
     tempG.attr("class", "message")
+        .attr("data-message-id", message.id) // inserted by ishida
         .datum(message)
         .on("dblclick", function(thisMessage){
             var thisActive = d3.select(this).select(".message-click-active-block");
@@ -1313,7 +1332,7 @@ function drawMessage(message){
                     var curX = d3.mouse(this)[0];
                     var curY = d3.mouse(this)[1];
                     d3.select(".hint-box").remove();
-                    addHint(message.from, message.to, message.message, curX, curY);
+                    addHint(message.from, message.to, message.message, curX, curY, message.id); //ishida
                     hintMessage = message;
                     logger.logHinitbox(message.id);
                 }
@@ -1328,16 +1347,18 @@ function drawMessage(message){
                 active = thisActive;
                 var curX = d3.mouse(this)[0];
                 var curY = d3.mouse(this)[1];
-                addHint(message.from, message.to, message.message, curX, curY);
+                addHint(message.from, message.to, message.message, curX, curY, message.id); //ishida
                 hintMessage = message;
                 logger.logHinitbox(message.id);
             }
+            clickSequenceToLine(message.id); // inserted by ishida
         });
 }
 
+var HINT_HEIGHT = 120; //changed by ishida previous : 90
 var HINT_HEIGHT = 90;
 var active;
-function addHint(from, to, msg, curX, curY){
+function addHint(from, to, msg, curX, curY, messageId) {
     var tempG = d3.select("svg")
                     .append("g")
                     .attr("class", "hint-box");
@@ -1361,18 +1382,35 @@ function addHint(from, to, msg, curX, curY){
 
     tempG.append("text")
         .text(function(d){ return "Caller: " + fromT; })
-        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 + ELEMENT_CH_HEIGHT) + ")")
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 8 + ELEMENT_CH_HEIGHT) + ")") //changed by ishida previous HINT_HEIGHT / 6
         .style("font-family","Courier New");
 
     tempG.append("text")
         .text(function(d){ return "Callee: " + toT; })
-        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 2 + ELEMENT_CH_HEIGHT) + ")")
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 8 * 3 + ELEMENT_CH_HEIGHT) + ")") //changed by ishida previous HINT_HEIGHT / 2
         .style("font-family","Courier New");
 
     tempG.append("text")
         .text(function(d){ return "Method: " + msg; })
-        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 6 * 5 + ELEMENT_CH_HEIGHT) + ")")
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 8 * 5 + ELEMENT_CH_HEIGHT) + ")") //changed by ishida previous HINT_HEIGHT / 6 *5
         .style("font-family","Courier New");
+
+    // inserted by ishida
+    let removeExe = tempG.append("text")
+        .text(function (d) {
+            return "remove this call";
+        })
+        .attr("transform", "translate(" + PADDING + "," + (HINT_HEIGHT / 8 * 7 + ELEMENT_CH_HEIGHT) + ")")
+        .attr("class", "remove")
+        .attr("fill", "#7099ff")
+        .attr("font-weight", "bold")
+        .attr("cursor", "pointer")
+        .style("font-family", "Courier New");
+
+    // inserted by ishida
+    removeExe.on('click', function () {
+        onclick(messageId);
+    });
 
     tempG.attr("transform", "translate(" + curX + "," + curY + ") scale(" + scale + ")");
 }
