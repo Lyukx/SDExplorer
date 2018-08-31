@@ -6,6 +6,7 @@ export function Element(rawElement) {
     // Display information
     this.id = rawElement.id;
     this.displayName = rawElement.name;
+    this.fqcn = rawElement.fqcn; //inserted by ishida
     if(rawElement.type != undefined){ // objects
         this.displayName += (":" + rawElement.type);
     }
