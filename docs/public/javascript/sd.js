@@ -1994,6 +1994,15 @@ SDViewer.prototype.setLoops = function(loops) {
     sdController.setLoops(loops);
 };
 
+SDViewer.prototype.resize = function(x,y){
+  width = x;
+  height = y;
+  svg.attr("width", x)
+    .attr("height", y)
+    .attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
+  keepElementTop();
+};
+
 function onDiagramMoved() {
     if(sdController.getMiddleElementX() != -1){
         if(viewBoxX >= sdController.getMiddleElementX()){
