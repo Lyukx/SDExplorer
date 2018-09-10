@@ -676,7 +676,7 @@ function drawMessage(message){
             x2 = xMax;
     }
 
-    var leftToRight = (elementMap.get(message.from).x < elementMap.get(message.to).x);
+    var leftToRight = (elementMap.get(message.from).x <= elementMap.get(message.to).x);
 
     var tempG = d3.select(".messages-layout").append("g");
 
@@ -693,7 +693,7 @@ function drawMessage(message){
     }
 
     // Draw call line
-    tempG.append("line")
+    var callLine = tempG.append("line")
 			.attr("class", "callLine")
             .style("stroke", "black")
             .attr("x1", leftToRight ? x1 + MSG_ACTIVE_WIDTH : x1)
@@ -703,7 +703,7 @@ function drawMessage(message){
             .attr("marker-end", "url(#end)");
 
     // Draw return line
-    tempG.append("line")
+    var returnLine = tempG.append("line")
 			.attr("class", "callBackLine")
             .style("stroke", "black")
             .style("stroke-dasharray", "5, 5, 5")
@@ -722,7 +722,7 @@ function drawMessage(message){
       }
       color = colorDict[threads.indexOf(message.thread) % colorDict.length];
     }
-    tempG.append("rect")
+    var activeBlock = tempG.append("rect")
         	.attr("class", "rightActiveBlock")
         	.attr({x: 0, y: 0, width: MSG_ACTIVE_WIDTH, height: h2})
         	.attr("transform", "translate(" + x2 + "," + y2 + ")")
@@ -731,6 +731,32 @@ function drawMessage(message){
 
     tempG.attr("class", "message")
         .datum(message);
+
+    // Adjust arrow style for self-calls
+    if(from == to){
+      activeBlock.attr({y: 5, height: h2 - 5});
+      // Draw extra part of call line, and adjust the position
+      tempG.append("line")
+              .style("stroke", "black")
+              .attr("x1", x1)
+              .attr("y1", y2)
+              .attr("x2", x2 + MSG_ACTIVE_WIDTH + 20)
+              .attr("y2", y2);
+      tempG.append("line")
+              .style("stroke", "black")
+              .attr("x1", x2 + MSG_ACTIVE_WIDTH + 20)
+              .attr("y1", y2)
+              .attr("x2", x2 + MSG_ACTIVE_WIDTH + 20)
+              .attr("y2", y2 + 12);
+      callLine.attr("x1", x2 + MSG_ACTIVE_WIDTH + 20)
+              .attr("y1", y2 + 12)
+              .attr("x2", x2 + MSG_ACTIVE_WIDTH)
+              .attr("y2", y2 + 12);
+      returnLine.remove();
+      activeBlock.style("fill", "#ffff99");
+      // Adjust the text Position
+      text.attr("transform", "translate(" + (x1 + PADDING - 15) + "," + y1 + ")");
+    }
 
     // Add hint box
     // Message info block

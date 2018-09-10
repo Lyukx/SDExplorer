@@ -117,7 +117,8 @@ function updateStatus() {
                 rawValidMessages.push(thisMsg)
             }
         }
-        else if(thisMsg.to != thisMsg.from && thisMsg.from != -1 && thisMsg.to != -1){
+        // else if(thisMsg.to != thisMsg.from && thisMsg.from != -1 && thisMsg.to != -1){
+        else if(thisMsg.from != -1 && thisMsg.to != -1){
             rawValidMessages.push(thisMsg);
             validMessageSet.add(thisMsg.id);
         }

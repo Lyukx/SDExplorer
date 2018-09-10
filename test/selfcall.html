@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+    <div id="sdexplorer"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+<script src="../dest/sd.js"></script>
+<script>
+
+// 'type' attribute is optional. It can stand for class/package name in Java scenario
+var objects = [{id: 0, name: "a", type: "A"},
+               {id: 1, name: "b", type: "B"},
+               {id: 2, name: "c"}];
+
+var groups = [];
+
+// Messages with 'return: true' attribute is return message
+var messages = [
+  {thread: "main", id: 0, from: 0, to: 1, message: "main()"},
+  {thread: "main", id: 1, from: 1, to: 1, message: "foo1()"},
+  {thread: "main", id: 2, from: 1, to: 2, message: "foo2()"},
+  {thread: "main", id: 3, from: 2, to: 2, message: "foo3()"},
+  {thread: "main", id: 3, return: true},
+  {thread: "main", id: 2, return: true},
+  {thread: "main", id: 1, return: true},
+  {thread: "main", id: 4, from: 1, to: 2, message: "bar()"},
+  {thread: "main", id: 4, return: true},
+  {thread: "main", id: 0, return: true}
+];
+
+var graph = new sd.SDViewer({
+  objects: objects,
+  messages: messages,
+  groups: groups,
+  loops: [],
+  drawAreaId: "sdexplorer"
+});
+</script>
+</body>
