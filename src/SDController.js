@@ -753,7 +753,7 @@ function drawMessage(message){
               .attr("x2", x2 + MSG_ACTIVE_WIDTH)
               .attr("y2", y2 + 12);
       returnLine.remove();
-      activeBlock.style("fill", "#ffff99");
+      activeBlock.style("fill", "#666");
       // Adjust the text Position
       text.attr("transform", "translate(" + (x1 + PADDING - 15) + "," + y1 + ")");
     }
