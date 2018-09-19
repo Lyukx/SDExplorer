@@ -86,6 +86,10 @@ SDController.prototype.setLoops = function(loops){
     drawLoops();
 }
 
+SDController.prototype.initLoopList = function(){
+    loopList = [];
+}
+
 SDController.prototype.updateAfterReOrder = function(){
   elementController.updateAfterReOrder();
 }

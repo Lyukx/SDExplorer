@@ -665,6 +665,10 @@ SDController.prototype.setLoops = function(loops){
     drawLoops();
 };
 
+SDController.prototype.initLoopList = function(){
+    loopList = [];
+};
+
 SDController.prototype.updateAfterReOrder = function(){
   elementController.updateAfterReOrder();
 };
@@ -1849,6 +1853,7 @@ function SDViewer(parameters) {
     // Save the raw message data in order to resume from compression
     this.rawMessageBeforeComress = parameters.messages;
 
+    sdController.initLoopList();
     sdController.setDiagramSize(diagramSizeX$1, diagramSizeY$1);
     sdController.setDiagramDisplayHead(headX, headY);
     sdController.drawWindow();

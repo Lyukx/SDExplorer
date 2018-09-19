@@ -42,6 +42,7 @@ export default function SDViewer(parameters) {
     // Save the raw message data in order to resume from compression
     this.rawMessageBeforeComress = parameters.messages;
 
+    sdController.initLoopList();
     sdController.setDiagramSize(diagramSizeX, diagramSizeY);
     sdController.setDiagramDisplayHead(headX, headY);
     sdController.drawWindow();
