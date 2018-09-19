@@ -837,8 +837,9 @@ function addHint(from, to, msg, curX, curY, messageId) {
     var scale = 1;
     var viewBox = d3.select("svg");
     if(viewBox[0][0] != null){
+        var windowX = d3.select("svg")
+                        .attr("width");
         viewBox = viewBox.attr("viewBox")
-        var windowX = window.innerWidth;
         scale = viewBox.split(" ")[2] / windowX;
     }
     var width = (Math.max(fromT.length, toT.length, msg.length) + 8) * ELEMENT_CH_WIDTH + 2 * PADDING;
