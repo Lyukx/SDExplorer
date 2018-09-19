@@ -42,6 +42,7 @@ export default function SDViewer(parameters) {
     // Save the raw message data in order to resume from compression
     this.rawMessageBeforeComress = parameters.messages;
 
+    sdController.initLoopList();
     sdController.setDiagramSize(diagramSizeX, diagramSizeY);
     sdController.setDiagramDisplayHead(headX, headY);
     sdController.drawWindow();
@@ -200,6 +201,15 @@ SDViewer.prototype.decompress = function() {
 
 SDViewer.prototype.setLoops = function(loops) {
     sdController.setLoops(loops);
+}
+
+SDViewer.prototype.resize = function(x,y){
+  width = x;
+  height = y;
+  svg.attr("width", x)
+    .attr("height", y)
+    .attr("viewBox", viewBoxX + " " + viewBoxY + " " + width / oldScale + " " + height / oldScale);
+  keepElementTop();
 }
 
 function onDiagramMoved() {
