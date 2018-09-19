@@ -680,6 +680,21 @@ SDController.prototype.setMessages = function(messages) {
     updateMainThread();
 };
 
+SDController.prototype.setMessagesDecompress = function(messages) {
+    messageController = new MessageController(messages, mainThreadSet, displaySet, elementMap);
+    validMessages = messageController.validMessages;
+    d3.select(".messages-layout").selectAll("*").remove();
+    // Draw Messages
+    for(var i = diagramStartMsg; i < diagramStartMsg + diagramSizeY; i++){
+        if(i >= validMessages.length){
+            break;
+        }
+        drawMessage(validMessages[i]);
+    }
+    updateBaseLine();
+    updateMainThread();
+};
+
 function unfold(group){
     elementController.unfoldUpdateStatus(group.id);
     unfoldUpdateElements(group, elementController);
@@ -1985,7 +2000,7 @@ SDViewer.prototype.compress = function() {
 
 SDViewer.prototype.decompress = function() {
     this.setLoops([]);
-    sdController.setMessages(this.rawMessageBeforeComress);
+    sdController.setMessagesDecompress(this.rawMessageBeforeComress);
     d3.select(".loop-layout").selectAll("*").remove();
     sdController.enableFoldAndUnfold();
 };
